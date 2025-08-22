@@ -9,13 +9,10 @@ __version__ = "0.1.0"
 __author__ = "Your Name"
 __email__ = "your.email@example.com"
 
-from .core import IRSSG, calculate_irreps
-from .utils import read_vasp_output, read_wavecar
+from .core import IRSSG, run_irssg
 
 __all__ = [
     "IRSSG",
-    "calculate_irreps", 
-    "read_vasp_output",
-    "read_wavecar",
+    "run_irssg",
 ]
 
