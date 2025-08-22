@@ -185,9 +185,9 @@ subroutine irssg_reps(num_litt_group_unitary,litt_group_unitary,num_bands,bot_ba
     character(len=40) :: fmt
     
     write(fmt,'(I0)')num_litt_group_unitary
-#ifdef TEST
+#ifdef TEST_OLD
     write(10450,'(A,'//trim(adjustl(fmt))//'I20)')'     ',litt_group_unitary(1:num_litt_group_unitary)
-#endif   
+#endif_OLD   
 
     write(*,*)
     write(*,'(A)')'Band Characters and Co-representations:'
@@ -231,9 +231,9 @@ subroutine irssg_reps(num_litt_group_unitary,litt_group_unitary,num_bands,bot_ba
                 save_numrep(iband, save_kcount) = 1
             endif 
 
-#ifdef TEST
+#ifdef TEST_OLD
             write(10450,'(1I5,'//trim(adjustl(fmt))//'F10.5,1I5)')iband,chrct_phase(iband,1:num_litt_group_unitary),i1
-#endif
+#endif_OLD
 
             write(*,'(1I4,1I3,1E12.4E2,A)',advance='no')iband,nint(real(chrct_phase(iband,1))),EE(iband),' '
 
@@ -304,9 +304,9 @@ subroutine irssg_reps(num_litt_group_unitary,litt_group_unitary,num_bands,bot_ba
                 save_numrep(iband, save_kcount)  = 2
                 save_numrep(iband+1,save_kcount) = 2
             endif 
-#ifdef TEST
+#ifdef TEST_OLD
             write(10450,'(1I5,'//fmt//'F10.5,2I5)')iband,chrct_phase(iband,1:num_litt_group_unitary),i1,j1
-#endif
+#endif_OLD
             
             write(*,'(1I4,1I3,1E12.4E2,A)',advance='no')iband,nint(real(chrct_phase(iband,1))),EE(iband),' '
             if(num_litt_group_unitary<=6) then
@@ -382,9 +382,9 @@ subroutine irssg_reps(num_litt_group_unitary,litt_group_unitary,num_bands,bot_ba
                 save_numrep(iband+1, save_kcount) = 3
                 save_numrep(iband+2, save_kcount) = 3
             endif 
-#ifdef TEST
+#ifdef TEST_OLD
             write(10450,'(1I5,'//fmt//'F10.5,3I5)')iband,chrct_phase(iband,1:num_litt_group_unitary),i1,j1,i2
-#endif
+#endif_OLD
 
             write(*,'(1I4,1I3,1E12.4E2,A)',advance='no')iband,nint(real(chrct_phase(iband,1))),EE(iband),' '
             if(num_litt_group_unitary<=6) then
@@ -464,9 +464,9 @@ subroutine irssg_reps(num_litt_group_unitary,litt_group_unitary,num_bands,bot_ba
                 save_numrep(iband+2, save_kcount) = 4
                 save_numrep(iband+3, save_kcount) = 4
             endif 
-#ifdef TEST
+#ifdef TEST_OLD
             write(10450,'(1I5,'//fmt//'F10.5,4I5)')iband,chrct_phase(iband,1:num_litt_group_unitary),i1,j1,i2,j2
-#endif
+#endif_OLD
 
             write(*,'(1I4,1I3,1E12.4E2,A)',advance='no')iband,nint(real(chrct_phase(iband,1))),EE(iband),' '
 
@@ -517,9 +517,9 @@ subroutine irssg_reps(num_litt_group_unitary,litt_group_unitary,num_bands,bot_ba
         endif 
 
         if (.not. match) then
-#ifdef TEST
+#ifdef TEST_OLD
             write(10450,'(1I5,'//fmt//'F10.5,A)')iband,chrct_phase(iband,1:num_litt_group_unitary),'  ??'
-#endif
+#endif_OLD
 
             write(*,'(1I4,1I3,1E12.4E2,A)',advance='no')iband,nint(real(chrct_phase(iband,1))),EE(iband),' '
             if(num_litt_group_unitary<=6) then

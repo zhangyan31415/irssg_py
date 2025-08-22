@@ -43,17 +43,10 @@ subroutine bilbao_read(sgn)
     elseif (sgn < 100) then; write(csgn,'(I2)') sgn
     else                   ; write(csgn,'(I3)') sgn
     endif 
-#ifdef IRVSPDATA 
-    call get_environment_variable('IRVSPDATA',spgpath)
-#else
-    write(6,*) "Environment variable 'IRVSPDATA' must be provided "
-    write(6,*) "Please run the following commands to make the library:"
-    write(6,*) "./configure.sh"
-    write(6,*) "source ~/.bashrc"
-    write(6,*) "make lib"
-    stop
-#endif 
-    spgfile = trim(spgpath)//'/kLittleGroups/kLG_'//trim(csgn)//'.data'
+    ! For now, use a default path - can be made configurable later
+    spgpath = './kLittleGroups'
+    write(6,*) "Using default data path: ", trim(spgpath) 
+    spgfile = trim(spgpath)//'/kLG_'//trim(csgn)//'.data'
     write(*,*) "SPGFILE :", trim(adjustl(spgfile)) 
 
     open(unit=bb, file=spgfile, status='old', form='unformatted')
@@ -172,7 +165,7 @@ subroutine bilbao_read(sgn)
             call Kreal2string(samplek(:,ikt),ckpoint) 
             ttmp(1,1:3)=samplek(1:3,ikt)
 
-    IF(ikt/=Numk) STOP"ERROR in little groups of k-points"
+    IF(ikt/=Numk) STOP "ERROR in little groups of k-points"
     num_ktype=ikt
 
 

@@ -121,11 +121,11 @@ subroutine get_table(num_litt_group, space_rot, space_tau, spin, su2, time_rever
          end if
       end do
    end do
-#ifdef TEST
+#ifdef TEST_OLD
     do i=1,num_litt_group
         write(1340,'(10000I4)')multiple_table(i,1:num_litt_group)*nint(real(factor_su2(i,1:num_litt_group)))
     enddo
-#endif
+#endif_OLD
 end subroutine get_table
 
 subroutine get_trans_factor(num_litt_group, time_reversal, space_rot, space_tau, kpoint, factor)
@@ -510,9 +510,9 @@ subroutine get_irreducible_rep(num_litt_group, time_reversal, k_point, factor, m
                 torsion(ir) = 0
             end do
         end if
-#ifdef TEST
+#ifdef TEST_OLD
         write(1223,*)torsion(1:irrep_num)
-#endif
+#endif_OLD
         ! 14. Verify the orthonormality of characters (irreducibility check):
         fail_flag = .false.
         if (any(time_reversal(:) == -1)) then
@@ -531,9 +531,9 @@ subroutine get_irreducible_rep(num_litt_group, time_reversal, k_point, factor, m
                     end if
                     sum_ch = sum_ch + (kappa1 + kappa2_mul * kappa2_omega) / (2.0_dp * real(nu, dp))
                 end do
-#ifdef TEST
+#ifdef TEST_OLD
                 write(190,*)sum_ch
-#endif
+#endif_OLD
                 if (abs(sum_ch - 1.0_dp) > 1e-2_dp) then
                     fail_flag = .true.
                     exit
@@ -737,7 +737,7 @@ end subroutine get_irreducible_rep
         irrep_unitary_name_list(:) = ''
         irrep_name_list_reduce(:) = ''
 
-#ifdef TEST
+#ifdef TEST_OLD
         write(178,'(A)')'Character table for unitary group'
         write(178,'(A,1000I20)')'   ',litt_group(order_op(1:num_litt_group_unitary))
         do i=1,irrep_unitary_num
@@ -754,7 +754,7 @@ end subroutine get_irreducible_rep
                 write(178,'(A,1I10,A,1I10)')' ',irrep_coirrep_relation(1,i),'+',irrep_coirrep_relation(2,i)
             endif
         enddo
-#endif
+#endif_OLD
 
 
         write(*,'(A)')'Character table for unitary group'

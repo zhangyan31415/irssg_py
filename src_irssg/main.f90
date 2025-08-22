@@ -244,9 +244,9 @@ end interface
         allocate(torsion(num_litt_group))
         allocate(phase(num_litt_group))
 
-#ifdef TEST
+#ifdef TEST_OLD
         call get_ssgrep_through_SSGREP(num_litt_group,rot,tau,spin_rot,SU2,time_reversal)
-#endif
+#endif_OLD
         
         call get_ch_from_op(num_litt_group, spin_rot(:,:,1:num_litt_group), rot(:,:,1:num_litt_group), &
                             tau(:,1:num_litt_group), SU2(:,:,1:num_litt_group), time_reversal(1:num_litt_group), &
@@ -376,9 +376,9 @@ end interface
         allocate(torsion(num_litt_group))
         allocate(phase(num_litt_group))
 
-#ifdef TEST
+#ifdef TEST_OLD
         call get_ssgrep_through_SSGREP(num_litt_group,rot,tau,spin_rot,SU2,time_reversal)
-#endif
+#endif_OLD
         
         call get_ch_from_op(num_litt_group, spin_rot(:,:,1:num_litt_group), rot(:,:,1:num_litt_group), &
                             tau(:,1:num_litt_group), SU2(:,:,1:num_litt_group), time_reversal(1:num_litt_group), &

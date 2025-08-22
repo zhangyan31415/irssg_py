@@ -105,7 +105,7 @@ contains
 
     nsym = nsym * num_spin_only_operator
 
-#ifdef TEST
+#ifdef TEST_OLD
     do i=1,nsym
         write(104,*)time_reversal_tmp2(i)
         write(104,*)transpose(spin_SU2_tmp2(:,:,i))
@@ -122,7 +122,7 @@ contains
     do i=1,nsym
         write(109,*)transpose(spin_rotation_tmp2(:,:,i))
     enddo
-#endif
+#endif_OLD
 
   end subroutine get_ssg_from_identifySSG
 
