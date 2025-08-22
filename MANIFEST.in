@@ -1,0 +1,27 @@
+# Include data files
+recursive-include irssg/data *.data
+recursive-include lib_ssg/kLittleGroups *.data
+
+# Include source files
+recursive-include lib_ssg *.f90 *.h
+recursive-include src_irssg *.f90 *.h
+
+# Include documentation
+include README.md
+include LICENSE
+
+# Include configuration files
+include pyproject.toml
+include setup.py
+
+# Exclude build artifacts
+global-exclude *.pyc
+global-exclude *.pyo
+global-exclude *.o
+global-exclude *.mod
+global-exclude *.a
+global-exclude *.so
+global-exclude *.dylib
+global-exclude __pycache__
+global-exclude .git*
+global-exclude .DS_Store
