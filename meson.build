@@ -69,7 +69,7 @@ lib_ssg_sources = files(
 lib_ssg = static_library('irssg_lib',
   lib_ssg_sources,
   dependencies: [blas_dep, lapack_dep],
-  include_directories: include_directories('python/irssg/fortran/lib'),
+  include_directories: include_directories('fortran/lib'),
 )
 
 # Compile src_irssg modules
@@ -87,8 +87,8 @@ src_irssg_lib = static_library('irssg_src',
   dependencies: [blas_dep, lapack_dep],
   link_with: [lib_ssg],
   include_directories: [
-    include_directories('python/irssg/fortran/src'),
-    include_directories('python/irssg/fortran/lib'),
+    include_directories('fortran/src'),
+    include_directories('fortran/lib'),
   ],
 )
 
