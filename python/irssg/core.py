@@ -29,11 +29,20 @@ class IRSSG:
         if irssg_path is None:
             # Try to find the executable automatically
             possible_paths = [
-                "irssg",
+                "irssg",  # Current directory
                 "src_irssg/irssg",
                 "../src_irssg/irssg",
-                "../../src_irssg/irssg"
+                "../../src_irssg/irssg",
+                "fortran/src/irssg",  # New project structure
+                "../fortran/src/irssg",
+                "../../fortran/src/irssg"
             ]
+            
+            # Also check system PATH
+            import shutil
+            system_irssg = shutil.which("irssg")
+            if system_irssg:
+                possible_paths.insert(0, system_irssg)
             
             for path in possible_paths:
                 if os.path.exists(path) and os.access(path, os.X_OK):
@@ -43,7 +52,8 @@ class IRSSG:
         if irssg_path is None or not os.path.exists(irssg_path):
             raise FileNotFoundError(f"IRSSG executable not found. Please specify the correct path.")
         
-        self.irssg_path = Path(irssg_path).resolve()
+        # Expand user directory and resolve path
+        self.irssg_path = Path(os.path.expanduser(irssg_path)).resolve()
         
         if not os.access(self.irssg_path, os.X_OK):
             raise PermissionError(f"IRSSG executable {self.irssg_path} is not executable")
