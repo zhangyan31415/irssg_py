@@ -1,37 +1,45 @@
 [build-system]
-requires = ["meson-python>=0.18.0", "ninja", "cython>=0.29.0"]
+requires = [
+    "meson>=0.64.0",
+    "ninja",
+    "meson-python>=0.13.0",
+    "cython>=0.29.0"
+]
 build-backend = "mesonpy"
 
 [project]
 name = "irssg"
 version = "0.1.0"
-description = "Python wrapper for IRSSG - Irreducible Representations of Space Groups"
-readme = "README.md"
-license = {text = "MIT"}
+description = "A Python wrapper for the IRSSG Fortran code"
 authors = [
-    {name = "Your Name", email = "your.email@example.com"}
+    { name = "Your Name", email = "your.email@example.com" }
 ]
-maintainers = [
-    {name = "Your Name", email = "your.email@example.com"}
+license = { text = "MIT" }
+readme = "README.md"
+requires-python = ">=3.9"
+dependencies = [
+    "numpy>=1.19.0",
 ]
-keywords = ["physics", "crystallography", "space-groups", "irreducible-representations"]
 classifiers = [
-    "Development Status :: 3 - Alpha",
+    "Development Status :: 4 - Beta",
+    "Environment :: Console",
     "Intended Audience :: Science/Research",
     "License :: OSI Approved :: MIT License",
-    "Operating System :: OS Independent",
+    "Operating System :: POSIX :: Linux",
     "Programming Language :: Python :: 3",
-    "Programming Language :: Python :: 3.8",
     "Programming Language :: Python :: 3.9",
     "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
     "Topic :: Scientific/Engineering :: Physics",
 ]
-requires-python = ">=3.8"
-dependencies = [
-    "numpy>=1.19.0,<2.0",
-]
+
+[project.scripts]
+irssg = "irssg.cli:main"
+
+[project.urls]
+Homepage = "https://github.com/zhangyan31415/irssg_py"
+"Bug Tracker" = "https://github.com/zhangyan31415/irssg_py/issues"
 
 [project.optional-dependencies]
 dev = [
@@ -41,15 +49,6 @@ dev = [
     "flake8>=3.8",
     "mypy>=0.800",
 ]
-
-[project.urls]
-Homepage = "https://github.com/yourusername/irssg"
-Repository = "https://github.com/yourusername/irssg"
-Documentation = "https://github.com/yourusername/irssg#readme"
-"Bug Tracker" = "https://github.com/yourusername/irssg/issues"
-
-[project.scripts]
-irssg = "irssg.cli:main"
 
 [tool.mesonpy]
 build-dir = "build"

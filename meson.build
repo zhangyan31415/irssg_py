@@ -92,20 +92,8 @@ src_irssg_lib = static_library('irssg_src',
   ],
 )
 
-# Python extension module - simplified for now
-# py3.extension_module('_irssg',
-#   'irssg/_irssg.pyx',
-#   dependencies: [py3_dep, np_dep, blas_dep, lapack_dep],
-#   link_with: [lib_ssg, src_irssg_lib],
-#   include_directories: [
-#     include_directories('src_irssg'),
-#     include_directories('lib_ssg'),
-#   ],
-#   install: true,
-# )
-
-# Build executable
-executable('irssg',
+# Build the main Fortran executable
+irssg_exe = executable('irssg',
   'fortran/src/main.f90',
   dependencies: [blas_dep, lapack_dep],
   link_with: [lib_ssg, src_irssg_lib],
@@ -114,13 +102,24 @@ executable('irssg',
     include_directories('fortran/lib'),
   ],
   install: true,
+  install_dir: py3.get_install_dir() / 'irssg' / 'bin'
+)
+
+# Install Python package files
+py3.install_sources([
+  'python/irssg/__init__.py',
+  'python/irssg/core.py',
+  'python/irssg/cli.py',
+  'python/irssg/utils.py',
+],
+  subdir: 'irssg'
 )
 
 # Install data files
-data_files = []
-install_data(data_files, install_dir: py3.get_install_dir() / 'irssg' / 'data')
-
-# Fortran source files are automatically included by meson-python
+install_subdir('fortran/lib/kLittleGroups', 
+  install_dir: py3.get_install_dir() / 'irssg' / 'data', 
+  strip_directory: false,
+  install_tag: 'runtime')
 
 # Subdir for Python package
 subdir('python')

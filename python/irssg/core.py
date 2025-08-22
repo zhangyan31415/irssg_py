@@ -76,48 +76,60 @@ class IRSSG:
         if not os.access(self.irssg_path, os.X_OK):
             raise PermissionError(f"IRSSG executable {self.irssg_path} is not executable")
     
-    def run(self, work_dir: Optional[str] = None, **kwargs) -> subprocess.CompletedProcess:
+    def run(self, timeout: Optional[int] = None) -> subprocess.CompletedProcess:
         """
-        Run the IRSSG Fortran program
+        Run the IRSSG program
         
         Parameters
         ----------
-        work_dir : str, optional
-            Working directory containing VASP output files
-        **kwargs : 
-            Additional arguments to pass to the IRSSG program
-        
+        timeout : int, optional
+            Timeout in seconds
+            
         Returns
         -------
         subprocess.CompletedProcess
             Result of the subprocess call
         """
-        if work_dir is None:
-            work_dir = os.getcwd()
+        if not self.irssg_path:
+            raise FileNotFoundError("IRSSG executable not found. Please specify the correct path.")
         
-        # Build command line arguments
-        cmd = [str(self.irssg_path)]
-        
-        # Add any additional arguments
-        for key, value in kwargs.items():
-            if value is not None:
-                if isinstance(value, bool):
-                    if value:
-                        cmd.append(f"--{key}")
-                else:
-                    cmd.append(f"--{key}")
-                    cmd.append(str(value))
-        
-        # Run the command
-        result = subprocess.run(
-            cmd,
-            cwd=work_dir,
-            capture_output=True,
-            text=True,
-            check=False
-        )
-        
-        return result
+        try:
+            result = subprocess.run(
+                [self.irssg_path],
+                capture_output=True,
+                text=True,
+                encoding='utf-8',
+                errors='replace',  # Replace invalid characters instead of failing
+                timeout=timeout,
+                cwd=os.getcwd()
+            )
+            return result
+        except subprocess.TimeoutExpired:
+            # Kill the process if it times out
+            raise subprocess.TimeoutExpired([self.irssg_path], timeout)
+        except UnicodeDecodeError as e:
+            # Fallback to binary mode if text mode fails
+            try:
+                result = subprocess.run(
+                    [self.irssg_path],
+                    capture_output=True,
+                    text=False,  # Use binary mode
+                    timeout=timeout,
+                    cwd=os.getcwd()
+                )
+                # Try to decode with error handling
+                stdout = result.stdout.decode('utf-8', errors='replace') if result.stdout else ""
+                stderr = result.stderr.decode('utf-8', errors='replace') if result.stderr else ""
+                
+                # Create a new CompletedProcess with decoded text
+                return subprocess.CompletedProcess(
+                    [self.irssg_path],
+                    result.returncode,
+                    stdout=stdout,
+                    stderr=stderr
+                )
+            except Exception as fallback_error:
+                raise RuntimeError(f"Failed to run IRSSG: {e}. Fallback also failed: {fallback_error}")
     
     def validate_input(self, work_dir: Optional[str] = None) -> bool:
         """
