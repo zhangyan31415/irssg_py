@@ -46,14 +46,32 @@ class IRSSG:
             
             for path in possible_paths:
                 if os.path.exists(path) and os.access(path, os.X_OK):
-                    irssg_path = path
-                    break
+                    # Check if it's not a Python script
+                    try:
+                        with open(path, 'rb') as f:
+                            first_line = f.readline().decode('utf-8', errors='ignore').strip()
+                            if not first_line.startswith('#!'):
+                                irssg_path = path
+                                break
+                    except:
+                        # If we can't read it, assume it's a binary
+                        irssg_path = path
+                        break
         
         if irssg_path is None or not os.path.exists(irssg_path):
             raise FileNotFoundError(f"IRSSG executable not found. Please specify the correct path.")
         
         # Expand user directory and resolve path
         self.irssg_path = Path(os.path.expanduser(irssg_path)).resolve()
+        
+        # Final check: ensure it's not a Python script
+        try:
+            with open(self.irssg_path, 'rb') as f:
+                first_line = f.readline().decode('utf-8', errors='ignore').strip()
+                if first_line.startswith('#!'):
+                    raise FileNotFoundError(f"Found Python script instead of executable: {self.irssg_path}")
+        except:
+            pass  # If we can't read it, assume it's a binary
         
         if not os.access(self.irssg_path, os.X_OK):
             raise PermissionError(f"IRSSG executable {self.irssg_path} is not executable")
