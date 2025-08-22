@@ -57,13 +57,13 @@ endif
 
 # Compile lib_ssg library
 lib_ssg_sources = files(
-  'python/irssg/fortran/lib/lib_comms.f90',
-  'python/irssg/fortran/lib/lib_bilbao.f90',
-  'python/irssg/fortran/lib/lib_chrct.f90',
-  'python/irssg/fortran/lib/invreal33.f90',
-  'python/irssg/fortran/lib/invmati.f90',
-  'python/irssg/fortran/lib/irrep_ssg.f90',
-  'python/irssg/fortran/lib/mathlib.f90',
+  'fortran/lib/lib_comms.f90',
+  'fortran/lib/lib_bilbao.f90',
+  'fortran/lib/lib_chrct.f90',
+  'fortran/lib/invreal33.f90',
+  'fortran/lib/invmati.f90',
+  'fortran/lib/irrep_ssg.f90',
+  'fortran/lib/mathlib.f90',
 )
 
 lib_ssg = static_library('irssg_lib',
@@ -74,12 +74,12 @@ lib_ssg = static_library('irssg_lib',
 
 # Compile src_irssg modules
 src_irssg_sources = files(
-  'python/irssg/fortran/src/comms.f90',
-  'python/irssg/fortran/src/init.f90',
-  'python/irssg/fortran/src/get_ssg.f90',
-  'python/irssg/fortran/src/comprel.f90',
-  'python/irssg/fortran/src/linear_rep.f90',
-  'python/irssg/fortran/src/wave_data.f90',
+  'fortran/src/comms.f90',
+  'fortran/src/init.f90',
+  'fortran/src/get_ssg.f90',
+  'fortran/src/comprel.f90',
+  'fortran/src/linear_rep.f90',
+  'fortran/src/wave_data.f90',
 )
 
 src_irssg_lib = static_library('irssg_src',
@@ -106,12 +106,12 @@ src_irssg_lib = static_library('irssg_src',
 
 # Build executable
 executable('irssg',
-  'python/irssg/fortran/src/main.f90',
+  'fortran/src/main.f90',
   dependencies: [blas_dep, lapack_dep],
   link_with: [lib_ssg, src_irssg_lib],
   include_directories: [
-    include_directories('python/irssg/fortran/src'),
-    include_directories('python/irssg/fortran/lib'),
+    include_directories('fortran/src'),
+    include_directories('fortran/lib'),
   ],
   install: true,
 )
@@ -120,10 +120,7 @@ executable('irssg',
 data_files = []
 install_data(data_files, install_dir: py3.get_install_dir() / 'irssg' / 'data')
 
-# Install Fortran source files
-install_subdir('python/irssg/fortran', 
-  install_dir: py3.get_install_dir() / 'irssg', 
-  strip_directory: false)
+# Fortran source files are automatically included by meson-python
 
 # Subdir for Python package
 subdir('python')

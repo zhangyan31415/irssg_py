@@ -11,6 +11,8 @@ downloads/
 eggs/
 .eggs/
 lib/
+!fortran/lib/
+!python/irssg/fortran/lib/
 lib64/
 parts/
 sdist/
