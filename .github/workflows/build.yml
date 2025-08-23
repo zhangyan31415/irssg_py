@@ -166,22 +166,36 @@ jobs:
           
           # macOS: 安装依赖并设置编译器
           CIBW_BEFORE_BUILD_MACOS: |
+            set -e  # 遇到错误立即退出，便于调试
             echo "📦 Installing dependencies for macOS builds..."
-            brew update
-            brew install gcc lapack
             
-            # 设置编译器环境变量
+            # 步骤1: 更新Homebrew
+            echo "Step 1: Updating Homebrew..."
+            brew update || { echo "❌ Homebrew update failed"; exit 1; }
+            
+            # 步骤2: 安装依赖
+            echo "Step 2: Installing dependencies..."
+            brew install gcc || { echo "❌ gcc installation failed"; exit 1; }
+            brew install lapack || { echo "❌ lapack installation failed"; exit 1; }
+            echo "✅ Dependencies installed successfully"
+            
+            # 步骤3: 设置编译器环境变量
+            echo "Step 3: Setting compiler environment variables..."
             export FC=$(brew --prefix)/bin/gfortran
             export CC=clang
             export CXX=clang++
             export FFLAGS="-fallow-invalid-boz -fbackslash -ffree-line-length-none -fallow-argument-mismatch"
+            echo "✅ Compiler variables set: FC=$FC, CC=$CC, CXX=$CXX"
             
-            # 设置LAPACK路径（macOS特殊处理）
+            # 步骤4: 设置LAPACK路径
+            echo "Step 4: Setting LAPACK paths..."
             export LDFLAGS="-L$(brew --prefix)/opt/lapack/lib"
             export CPPFLAGS="-I$(brew --prefix)/opt/lapack/include"
             export PKG_CONFIG_PATH="$(brew --prefix)/opt/lapack/lib/pkgconfig:$PKG_CONFIG_PATH"
+            echo "✅ LAPACK paths set: LDFLAGS=$LDFLAGS, CPPFLAGS=$CPPFLAGS"
             
-            # 设置ARM64编译标志（如果适用）
+            # 步骤5: 设置架构标志
+            echo "Step 5: Setting architecture flags..."
             if [ "$(uname -m)" = "arm64" ]; then
               echo "🎯 Building for ARM64 (Apple Silicon)"
               export CFLAGS="-arch arm64"
@@ -195,22 +209,36 @@ jobs:
               export LDFLAGS="$LDFLAGS -arch x86_64 -Wl,-rpath,$(brew --prefix)/opt/lapack/lib"
               export ARCHFLAGS="-arch x86_64"
             fi
+            echo "✅ Architecture flags set: CFLAGS=$CFLAGS, CXXFLAGS=$CXXFLAGS"
             
-            # 验证LAPACK安装
-            echo "🔍 Verifying LAPACK installation..."
-            ls -la $(brew --prefix)/opt/lapack/lib/ || echo "LAPACK lib not found"
-            ls -la $(brew --prefix)/opt/lapack/include/ || echo "LAPACK include not found"
+            # 步骤6: 验证安装
+            echo "Step 6: Verifying installation..."
+            echo "🔍 Checking LAPACK library files..."
+            ls -la $(brew --prefix)/opt/lapack/lib/ || { echo "❌ LAPACK lib directory not found"; exit 1; }
+            ls -la $(brew --prefix)/opt/lapack/include/ || { echo "❌ LAPACK include directory not found"; exit 1; }
             
-            # 验证pkg-config能找到LAPACK
-            echo "🔍 Verifying pkg-config LAPACK detection..."
-            pkg-config --exists lapack && echo "✅ pkg-config found LAPACK" || echo "⚠️ pkg-config LAPACK not found"
+            echo "🔍 Checking pkg-config LAPACK detection..."
+            pkg-config --exists lapack || { echo "❌ pkg-config cannot find LAPACK"; exit 1; }
             pkg-config --modversion lapack || echo "⚠️ Could not get LAPACK version"
             pkg-config --variable=libdir lapack || echo "⚠️ Could not get LAPACK libdir"
             
-            # 设置cibuildwheel环境变量
+            # 步骤7: 设置cibuildwheel环境变量
+            echo "Step 7: Setting cibuildwheel environment variables..."
             export CIBW_ENVIRONMENT_MACOS="LDFLAGS=$LDFLAGS CPPFLAGS=$CPPFLAGS PKG_CONFIG_PATH=$PKG_CONFIG_PATH"
+            echo "✅ CIBW environment variables set: $CIBW_ENVIRONMENT_MACOS"
             
-            echo "✅ macOS build environment configured"
+            # 步骤8: 最终验证
+            echo "Step 8: Final verification..."
+            echo "📋 Final environment summary:"
+            echo "  FC: $FC"
+            echo "  CC: $CC"
+            echo "  CXX: $CXX"
+            echo "  LDFLAGS: $LDFLAGS"
+            echo "  CPPFLAGS: $CPPFLAGS"
+            echo "  PKG_CONFIG_PATH: $PKG_CONFIG_PATH"
+            echo "  CIBW_ENVIRONMENT_MACOS: $CIBW_ENVIRONMENT_MACOS"
+            
+            echo "✅ macOS build environment configured successfully!"
           
           # Windows: 设置MSVC环境
           CIBW_BEFORE_BUILD_WINDOWS: |
