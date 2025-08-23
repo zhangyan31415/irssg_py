@@ -56,11 +56,8 @@ else
 endif
 
 # Platform-specific configuration
-host_machine = meson.get_external_property('host_machine', 'unknown')
-build_machine = meson.get_external_property('build_machine', 'unknown')
-
-message('Host machine: ' + host_machine)
-message('Build machine: ' + build_machine)
+message('Host machine: ' + host_machine.system())
+message('Build machine: ' + build_machine.system())
 
 # Compile lib_ssg library
 lib_ssg_sources = files(
