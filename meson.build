@@ -245,7 +245,7 @@ if is_cibuildwheel == '1'
         include_directories('fortran/src'),
         include_directories('fortran/lib'),
       ],
-      link_args: ['-LC:/msys64/ucrt64/lib', '-llapack', '-lgfortran'],
+      link_args: ['-LC:/msys64/ucrt64/lib', '-lopenblas', '-lgfortran'],
       fortran_args: ['-DMPI', '-I' + 'C:/msys64/ucrt64/include'],
       install: true,
       install_dir: py3.get_install_dir() / 'irssg' / 'bin'
