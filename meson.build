@@ -1,4 +1,4 @@
-project('irssg', 'fortran', 'cpp',
+project('irssg', 'fortran', 'cpp', 'c',
   version : '0.1.0',
   license : 'MIT',
   meson_version : '>=0.64.0',
