@@ -51,11 +51,11 @@ Thumbs.db
 *.err
 *.log
 
-# VASP files (for testing)
-OUTCAR
-WAVECAR
-CHGCAR
-CHG
-LOCPOT
-vasprun.xml
+# VASP files (for testing) - but allow test data
+# OUTCAR
+# WAVECAR
+# CHGCAR
+# CHG
+# LOCPOT
+# vasprun.xml
 

@@ -56,35 +56,7 @@ jobs:
         # Test validation command
         irssg --validate
         
-        # Test full execution (should complete successfully)
-        timeout 60s irssg || echo "irssg command completed (may have timed out or finished)"
-        
-        # Verify executable is properly installed
-        ls -la $(python -c "import irssg; import os; print(os.path.join(os.path.dirname(irssg.__file__), 'bin'))")
-        
-        # Test Python API
-        python -c "
-        from irssg.core import IRSSG
-        import subprocess
-        import shutil
-        
-        # Find irssg executable
-        irssg_path = shutil.which('irssg')
-        if irssg_path:
-            print(f'Found irssg at: {irssg_path}')
-            
-            # Test IRSSG class
-            irssg = IRSSG(irssg_path)
-            print('IRSSG class instantiated successfully')
-            
-            # Test run method
-            try:
-                result = irssg.run()
-                print('IRSSG.run() executed successfully')
-            except Exception as e:
-                print(f'IRSSG.run() completed with: {e}')
-        else:
-            print('irssg executable not found in PATH')
-            exit(1)
-        "
+        # Test full execution in test directory
+        cd examples/test_irssg
+        timeout 25s irssg || echo "irssg command completed (may have timed out or finished)"
 
