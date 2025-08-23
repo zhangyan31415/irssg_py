@@ -489,9 +489,15 @@ jobs:
             echo "Testing validation..."
             irssg --validate
             
-            # 测试完整执行（使用timeout避免无限等待）
+            # 测试完整执行（macOS使用gtimeout，如果没有则使用perl实现）
             echo "Testing full execution..."
-            timeout 30s irssg irssg.in || echo "irssg command completed (may have timed out or finished)"
+            if command -v gtimeout >/dev/null 2>&1; then
+              echo "Using gtimeout for timeout control..."
+              gtimeout 30s irssg irssg.in || echo "irssg command completed (may have timed out or finished)"
+            else
+              echo "gtimeout not found, using perl timeout implementation..."
+              perl -e 'alarm 30; exec @ARGV' irssg irssg.in || echo "irssg command completed (may have timed out or finished)"
+            fi
             
             echo "✅ All macOS ARM64 tests passed"
 
@@ -562,7 +568,25 @@ jobs:
         continue-on-error: true
         run: |
           Write-Host "=== Windows功能测试 ==="
-          cd examples/test_irssg
+          
+          # 检查当前目录和文件
+          Write-Host "Current directory: $(Get-Location)"
+          Write-Host "Available files:"
+          Get-ChildItem -Recurse | Format-Table Name, Length, FullName
+          
+          # 检查examples/test_irssg目录
+          if (Test-Path "examples/test_irssg") {
+            Write-Host "✅ examples/test_irssg directory found"
+            cd examples/test_irssg
+            Write-Host "Changed to: $(Get-Location)"
+            Write-Host "Files in test directory:"
+            Get-ChildItem | Format-Table Name, Length
+          } else {
+            Write-Host "❌ examples/test_irssg directory NOT found!"
+            Write-Host "Available directories:"
+            Get-ChildItem -Directory | Format-Table Name
+            exit 1
+          }
           
           # 测试irssg基本功能
           Write-Host "Testing irssg basic functionality..."
@@ -570,31 +594,46 @@ jobs:
           
           # 测试irssg命令
           Write-Host "Testing irssg command..."
+          Write-Host "irssg --version:"
           irssg --version
+          Write-Host "irssg --help:"
           irssg --help
           
           # 测试验证命令
           Write-Host "Testing validation..."
+          Write-Host "irssg --validate:"
           irssg --validate
           
           # 测试完整执行（Windows没有timeout，使用其他方法）
           Write-Host "Testing full execution..."
+          Write-Host "Executing: irssg irssg.in"
+          
           try {
-            $job = Start-Job -ScriptBlock { Set-Location examples/test_irssg; irssg irssg.in }
-            Wait-Job $job -Timeout 30
-            if ($job.State -eq "Running") {
-              Stop-Job $job
-              Write-Host "irssg command timed out after 30 seconds"
-            } else {
-              $result = Receive-Job $job
-              Write-Host "irssg output: $result"
-            }
-            Remove-Job $job
+            # 直接执行，不使用Job（避免路径问题）
+            $output = & irssg irssg.in 2>&1
+            $exitCode = $LASTEXITCODE
+            Write-Host "irssg command completed with exit code: $exitCode"
+            Write-Host "Output: $output"
           } catch {
-            Write-Host "irssg command failed: $_"
+            Write-Host "irssg command failed with exception: $_"
+            Write-Host "Trying alternative execution method..."
+            
+            # 备用方法：使用Start-Process
+            try {
+              $process = Start-Process -FilePath "irssg" -ArgumentList "irssg.in" -Wait -PassThru -RedirectStandardOutput "output.txt" -RedirectStandardError "error.txt"
+              Write-Host "Process completed with exit code: $($process.ExitCode)"
+              if (Test-Path "output.txt") {
+                Write-Host "Output: $(Get-Content output.txt)"
+              }
+              if (Test-Path "error.txt") {
+                Write-Host "Error: $(Get-Content error.txt)"
+              }
+            } catch {
+              Write-Host "Alternative method also failed: $_"
+            }
           }
           
-          Write-Host "✅ All Windows tests passed"
+          Write-Host "✅ All Windows tests completed"
 
   collect_wheels:
     name: Collect all wheels
