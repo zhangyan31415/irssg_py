@@ -1,4 +1,30 @@
-name: Build and Test IRSSG Package
+name: Build and Test IRSSG Cross-Platform Wheels
+
+# ╔══════════════════════════════════════════════════════════════════════════════╗
+# ║                             🛠️  开发者配置区域                                    ║
+# ║                         Developer Configuration                              ║
+# ╚══════════════════════════════════════════════════════════════════════════════╝
+# 
+# 🐍 支持的Python版本 (修改此处以更改构建的Python版本)
+# 格式: {major}.{minor} (例如: 3.9 = Python 3.9.x, 3.10 = Python 3.10.x)
+# 
+# 📝 使用说明:
+# - 要构建特定版本: 修改 PYTHON_VERSIONS_SOURCE
+# - 要跳过某版本: 从列表中删除对应条目
+# - 要添加新版本: 在列表中添加 {版本号}
+# 
+# 💡 示例:
+# - 只构建 3.9-3.11: "3.9 3.10 3.11"
+# - 只构建 3.10: "3.10"
+# - 构建所有: "3.9 3.10 3.11 3.12 3.13"
+# 
+env:
+  # 🎯 Python版本配置 - 只需要在这里修改一次！
+  PYTHON_VERSIONS_SOURCE: "3.9 3.10 3.11"  # 主版本列表，空格分隔
+  
+  # 其他构建配置
+  BUILD_VERBOSITY: "3"                    # 构建详细度 (0-3, 推荐3用于调试)
+  MACOS_DEPLOYMENT_TARGET: "14.0"         # macOS最低版本要求 (支持Apple Silicon)
 
 on:
   push:
@@ -17,16 +43,21 @@ jobs:
       - name: Generate configurations
         id: config
         run: |
-          # 只支持Python 3.9
-          SOURCE_VERSIONS="3.9"
+          # 从环境变量读取源版本列表
+          SOURCE_VERSIONS="${{ env.PYTHON_VERSIONS_SOURCE }}"
           echo "Source Python versions: $SOURCE_VERSIONS"
           
-          # 生成 cibuildwheel 格式: "cp39-*"
-          CIBW_VERSIONS="cp39-*"
+          # 生成 cibuildwheel 格式: "cp39-* cp310-* cp311-*"
+          CIBW_VERSIONS=""
+          for version in $SOURCE_VERSIONS; do
+            major_minor=$(echo $version | tr -d '.')
+            CIBW_VERSIONS="$CIBW_VERSIONS cp${major_minor}-*"
+          done
+          CIBW_VERSIONS=$(echo $CIBW_VERSIONS | sed 's/^ *//')
           echo "python-versions-cibw=$CIBW_VERSIONS" >> $GITHUB_OUTPUT
           
-          # 生成测试矩阵格式: ["3.9"]
-          TEST_VERSIONS='["3.9"]'
+          # 生成测试矩阵格式: ["3.9", "3.10", "3.11"]
+          TEST_VERSIONS=$(echo "$SOURCE_VERSIONS" | sed 's/ /", "/g' | sed 's/^/["/' | sed 's/$/"]/')
           echo "python-versions-test=$TEST_VERSIONS" >> $GITHUB_OUTPUT
           
           echo "Generated configurations:"
@@ -77,8 +108,8 @@ jobs:
         with:
           output-dir: wheelhouse
         env:
-          # Python版本配置
-          CIBW_BUILD: "cp39-* cp310-* cp311-*"
+          # 🐍 Python版本配置 (使用动态生成的版本)
+          CIBW_BUILD: ${{ needs.setup.outputs.python-versions-cibw }}
           
           # 平台特定的架构配置
           CIBW_ARCHS_LINUX: ${{ matrix.cibw_archs }}
@@ -86,7 +117,7 @@ jobs:
           CIBW_ARCHS_WINDOWS: ${{ matrix.cibw_archs }}
           
           # 构建详细度配置
-          CIBW_BUILD_VERBOSITY: "3"
+          CIBW_BUILD_VERBOSITY: ${{ env.BUILD_VERBOSITY }}
           
           # Linux: 在manylinux镜像中安装依赖
           CIBW_BEFORE_BUILD_LINUX: |
@@ -248,7 +279,7 @@ jobs:
             
             # 步骤7: 设置cibuildwheel环境变量
             echo "Step 7: Setting cibuildwheel environment variables..."
-            export CIBW_ENVIRONMENT_MACOS="LDFLAGS=$LDFLAGS CPPFLAGS=$CPPFLAGS PKG_CONFIG_PATH=$PKG_CONFIG_PATH"
+            export CIBW_ENVIRONMENT_MACOS="LDFLAGS=$LDFLAGS CPPFLAGS=$CPPFLAGS PKG_CONFIG_PATH=$PKG_CONFIG_PATH MACOSX_DEPLOYMENT_TARGET=${{ env.MACOS_DEPLOYMENT_TARGET }}"
             echo "✅ CIBW environment variables set: $CIBW_ENVIRONMENT_MACOS"
             
             # 步骤8: 最终验证
@@ -268,6 +299,9 @@ jobs:
             which gfortran
             gfortran --version
             echo "✅ macOS build environment configured successfully!"
+            echo "🔍 Final environment check:"
+            echo "  MACOSX_DEPLOYMENT_TARGET: $MACOSX_DEPLOYMENT_TARGET"
+            echo "  CIBW_ENVIRONMENT_MACOS: $CIBW_ENVIRONMENT_MACOS"
           
           # Windows: 设置MSVC环境
           CIBW_BEFORE_BUILD_WINDOWS: |
