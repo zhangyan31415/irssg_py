@@ -46,9 +46,7 @@ else
   # We only need LAPACK for zheev, not full BLAS
   lapack_dep = dependency('lapack', required: false)
   if not lapack_dep.found()
-    message('LAPACK not found, trying to find it in OpenBLAS...')
-    # Some OpenBLAS builds include LAPACK functions
-    lapack_dep = dependency('openblas', required: false)
+    message('LAPACK not found, will use manual linking')
   endif
   
   # Minimal BLAS dependency (only if LAPACK requires it)
@@ -122,35 +120,35 @@ endif
 if is_cibuildwheel == '1'
   # In cibuildwheel environment, use platform-specific linking
   if host_machine.system() == 'darwin'
-    # macOS: use Homebrew OpenBLAS paths (like wanniertools)
-    # OpenBLAS包含了LAPACK函数，包括我们需要的zheev
-    openblas_lib_path = ''
+    # macOS: use Homebrew LAPACK paths (simplified approach)
+    # LAPACK包含了我们需要的zheev函数
+    lapack_lib_path = ''
     if is_cibuildwheel == '1'
       # 在cibuildwheel环境中，使用标准路径
-      openblas_lib_path = '/opt/homebrew/opt/openblas/lib'
+      lapack_lib_path = '/opt/homebrew/opt/lapack/lib'
     else
       # 在本地环境中，尝试自动检测
       pkgconfig = find_program('pkg-config', required: false)
       if pkgconfig.found()
-        openblas_lib_path = run_command(pkgconfig, '--variable=libdir', 'openblas', check: false).stdout().strip()
+        lapack_lib_path = run_command(pkgconfig, '--variable=libdir', 'lapack', check: false).stdout().strip()
       endif
-      if openblas_lib_path == ''
+      if lapack_lib_path == ''
         # 回退到常见路径
-        common_paths = ['/opt/homebrew/opt/openblas/lib', '/usr/local/opt/openblas/lib', '/opt/local/lib']
+        common_paths = ['/opt/homebrew/opt/lapack/lib', '/usr/local/opt/lapack/lib', '/opt/local/lib']
         foreach path : common_paths
           if run_command('test', '-d', path, check: false).returncode() == 0
-            openblas_lib_path = path
+            lapack_lib_path = path
             break
           endif
         endforeach
       endif
     endif
     
-    if openblas_lib_path == ''
-      error('Could not find OpenBLAS library path on macOS')
+    if lapack_lib_path == ''
+      error('Could not find LAPACK library path on macOS')
     endif
     
-    message('Using OpenBLAS library path: ' + openblas_lib_path)
+    message('Using LAPACK library path: ' + lapack_lib_path)
     
     irssg_exe = executable('irssg',
       'fortran/src/main.f90',
@@ -159,7 +157,7 @@ if is_cibuildwheel == '1'
         include_directories('fortran/src'),
         include_directories('fortran/lib'),
       ],
-      link_args: ['-L' + openblas_lib_path, '-lopenblas', '-Wl,-rpath,' + openblas_lib_path],
+      link_args: ['-L' + lapack_lib_path, '-llapack', '-Wl,-rpath,' + lapack_lib_path],
       install: true,
       install_dir: py3.get_install_dir() / 'irssg' / 'bin'
     )
