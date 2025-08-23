@@ -55,27 +55,7 @@ archs = ["AMD64"]
 environment = { FC = "C:\\\\msys64\\\\ucrt64\\\\bin\\\\gfortran.exe", CC = "C:\\\\msys64\\\\ucrt64\\\\bin\\\\gcc.exe", CXX = "C:\\\\msys64\\\\ucrt64\\\\bin\\\\g++.exe", FFLAGS = "-fallow-invalid-boz -fbackslash -ffree-line-length-none -fallow-argument-mismatch -O2", CFLAGS = "-O2", CXXFLAGS = "-O2", LDFLAGS = "-LC:\\\\msys64\\\\ucrt64\\\\lib -Wl,--allow-multiple-definition", OPENBLAS_NUM_THREADS = "1", OMP_NUM_THREADS = "1", MKL_NUM_THREADS = "1", BLAS = "None", LAPACK = "None", PATH = "C:\\\\msys64\\\\ucrt64\\\\bin;${PATH}" }
 before-build = [
     "echo 'Setting up Windows build environment...'",
-    "echo 'Current working directory:'",
-    "pwd",
-    "echo 'Checking if MSYS2 exists...'",
-    "dir C:\\msys64 2>nul || echo 'MSYS2 not found'",
-    "echo 'Installing MSYS2 if needed...'",
-    "if not exist C:\\msys64 (",
-    "  echo 'MSYS2 not found, installing...'",
-    "  powershell -Command \"Invoke-WebRequest 'https://github.com/msys2/msys2-installer/releases/download/2024-01-13/msys2-x86_64-20240113.exe' -OutFile msys2-installer.exe\"",
-    "  start /wait msys2-installer.exe --accept-messages --accept-licenses --confirm-command",
-    "  del msys2-installer.exe",
-    "  echo 'MSYS2 installed successfully'",
-    ") else (",
-    "  echo 'MSYS2 already exists'",
-    ")",
-    "echo 'Setting up MSYS2 environment...'",
-    "set PATH=C:\\msys64\\usr\\bin;C:\\msys64\\ucrt64\\bin;%PATH%",
-    "echo 'Installing required packages...'",
-    "C:\\msys64\\usr\\bin\\pacman.exe -Syu --noconfirm",
-    "C:\\msys64\\usr\\bin\\pacman.exe -S --noconfirm mingw-w64-ucrt-x86_64-gcc mingw-w64-ucrt-x86_64-gcc-fortran mingw-w64-ucrt-x86_64-lapack",
-    "echo 'Verifying installation...'",
-    "C:\\msys64\\ucrt64\\bin\\gfortran.exe --version",
+    "windows_setup.bat",
     "echo 'Windows build environment setup complete'"
 ]
 

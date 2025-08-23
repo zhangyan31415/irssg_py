@@ -83,9 +83,6 @@ if errorlevel 1 (
 
 echo === Setting up final environment ===
 rem Add MSYS2 to PATH
-set "PATH=C:\msys64\ucrt64\bin;%PATH%"
-
-rem Configure development paths
 set "CPATH=C:\msys64\ucrt64\include"
 set "LIBRARY_PATH=C:\msys64\ucrt64\lib"
 

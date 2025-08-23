@@ -306,19 +306,7 @@ jobs:
             echo "  MACOSX_DEPLOYMENT_TARGET: $MACOSX_DEPLOYMENT_TARGET"
             echo "  CIBW_ENVIRONMENT_MACOS: $CIBW_ENVIRONMENT_MACOS"
           
-          # Windows: 设置MSVC环境
-          CIBW_BEFORE_BUILD_WINDOWS: |
-            echo "📦 Setting up MSVC environment for Windows builds..."
-            
-            # 设置编译器环境变量
-            export CC=cl
-            export CXX=cl
-            export FC=cl
-            
-            # 设置Fortran编译标志
-            export FFLAGS="/fpp /std:legacy"
-            
-            echo "✅ Windows MSVC environment configured"
+          # Windows: 不在这里设置环境，让pyproject.toml的before-build处理
           
           # macOS: 使用delocate修复wheel
           CIBW_REPAIR_WHEEL_COMMAND_MACOS: |
