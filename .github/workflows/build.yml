@@ -154,6 +154,10 @@ jobs:
           CIBW_BEFORE_BUILD_MACOS: |
             set -e  # 遇到错误立即退出，便于调试
             echo "📦 Installing dependencies for macOS builds..."
+            echo "🔍 Script started at: $(date)"
+            echo "🔍 Current working directory: $(pwd)"
+            echo "🔍 Current user: $(whoami)"
+            echo "🔍 Current PATH: $PATH"
             
             # 步骤1: 更新Homebrew
             echo "Step 1: Updating Homebrew..."
@@ -161,12 +165,19 @@ jobs:
             
             # 步骤2: 安装依赖 (使用OpenBLAS，像wanniertools一样)
             echo "Step 2: Installing dependencies..."
+            
+            # 在macOS上，gcc包可能不包含gfortran，需要单独安装
+            echo "Installing gcc (may not include gfortran)..."
             brew install gcc || { echo "❌ gcc installation failed"; exit 1; }
             brew install openblas || { echo "❌ openblas installation failed"; exit 1; }
             
             # 确保gfortran在PATH中
             echo "$(brew --prefix)/bin" >> $GITHUB_PATH
             export PATH="$(brew --prefix)/bin:$PATH"
+            
+            echo "🔍 PATH after update: $PATH"
+            echo "🔍 GITHUB_PATH content:"
+            cat $GITHUB_PATH || echo "GITHUB_PATH not accessible"
             
             echo "✅ Dependencies installed successfully"
             
@@ -175,6 +186,13 @@ jobs:
             
             # 验证gfortran是否可用
             echo "🔍 Verifying gfortran installation..."
+            
+            # 检查gfortran是否在PATH中
+            echo "Current PATH: $PATH"
+            echo "Checking for gfortran in common locations..."
+            ls -la $(brew --prefix)/bin/
+            ls -la $(brew --prefix)/bin/gfortran* || echo "No gfortran found in brew bin"
+            
             which gfortran || { echo "❌ gfortran not found in PATH"; exit 1; }
             gfortran --version || { echo "❌ gfortran version check failed"; exit 1; }
             echo "✅ gfortran found: $(which gfortran)"
