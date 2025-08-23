@@ -561,16 +561,11 @@ jobs:
       - name: Test irssg functionality (Windows)
         shell: pwsh
         continue-on-error: true
-        env:
-          PATH: C:\msys64\ucrt64\bin;${{ env.PATH }}
-          IRSSG_DATA_PATH: ${{ env.IRSSG_DATA_PATH }}
         run: |
           Write-Host "=== Windows功能测试 ==="
           
           # 检查当前目录和文件
           Write-Host "Current directory: $(Get-Location)"
-          Write-Host "Available files:"
-          Get-ChildItem -Recurse | Format-Table Name, Length, FullName
           
           # 检查examples/test_irssg目录
           if (Test-Path "examples/test_irssg") {
@@ -581,8 +576,6 @@ jobs:
             Get-ChildItem | Format-Table Name, Length
           } else {
             Write-Host "❌ examples/test_irssg directory NOT found!"
-            Write-Host "Available directories:"
-            Get-ChildItem -Directory | Format-Table Name
             exit 1
           }
           
@@ -592,257 +585,38 @@ jobs:
           
           # 测试irssg命令
           Write-Host "Testing irssg command..."
-          Write-Host "irssg --version:"
-          irssg --version
-          Write-Host "irssg --help:"
-          irssg --help
+          Write-Host "irssg.exe --version:"
+          irssg.exe --version
+          Write-Host "irssg.exe --help:"
+          irssg.exe --help
           
           # 测试验证命令
           Write-Host "Testing validation..."
-          Write-Host "irssg --validate:"
-          irssg --validate
+          Write-Host "irssg.exe --validate:"
+          irssg.exe --validate
           
-          # 测试完整执行（Windows没有timeout，使用其他方法）
+          # 测试完整执行
           Write-Host "Testing full execution..."
-          Write-Host "Executing: irssg irssg.in"
+          Write-Host "Executing: irssg.exe irssg.in"
           
-          # 检查环境变量
-          Write-Host "Environment variables:"
-          Write-Host "  PATH: $env:PATH"
-          Write-Host "  IRSSG_DATA_PATH: $env:IRSSG_DATA_PATH"
+          # 使用Start-Process执行irssg.exe
+          $process = Start-Process -FilePath "irssg.exe" -ArgumentList "irssg.in" -Wait -PassThru -RedirectStandardOutput "output.txt" -RedirectStandardError "error.txt"
+          Write-Host "Process completed with exit code: $($process.ExitCode)"
           
-          # 检查irssg.exe的依赖
-          Write-Host "Checking irssg.exe dependencies..."
-          try {
-            # 首先检查当前目录
-            if (Test-Path "irssg.exe") {
-              $deps = Get-Item "irssg.exe" | Select-Object -ExpandProperty FullName
-              Write-Host "  irssg.exe found in current directory: $deps"
-            } else {
-              # 检查Python包安装目录
-              $pythonPath = python -c "import sys; print(sys.prefix)"
-              $irssgExePath = Join-Path $pythonPath "Scripts\irssg.exe"
-              if (Test-Path $irssgExePath) {
-                Write-Host "  irssg.exe found in Python Scripts: $irssgExePath"
-                $deps = $irssgExePath
-              } else {
-                Write-Host "  irssg.exe not found in Scripts, checking site-packages..."
-                $sitePackages = python -c "import site; print(site.getsitepackages()[0])"
-                $irssgBinPath = Join-Path $sitePackages "irssg\bin\irssg.exe"
-                if (Test-Path $irssgBinPath) {
-                  Write-Host "  irssg.exe found in site-packages: $irssgBinPath"
-                  $deps = $irssgBinPath
-                } else {
-                  Write-Host "  ❌ irssg.exe not found anywhere!"
-                  exit 1
-                }
-              }
-            }
-            
-            # 使用dumpbin检查依赖（如果可用）
-            if (Get-Command "dumpbin" -ErrorAction SilentlyContinue) {
-              Write-Host "  Dependencies:"
-              dumpbin /dependents $deps | Select-String "\.dll"
-            }
-            
-            # 详细检查关键运行时库
-            Write-Host "Checking critical runtime libraries..."
-            $criticalLibs = @(
-              "liblapack.dll",
-              "libgfortran-5.dll", 
-              "libquadmath-0.dll",
-              "libgcc_s_seh-1.dll",
-              "libwinpthread-1.dll"
-            )
-            
-            foreach ($lib in $criticalLibs) {
-              $found = $false
-              # 检查系统目录
-              $systemPaths = @(
-                "C:\Windows\System32",
-                "C:\Windows\SysWOW64",
-                "C:\msys64\ucrt64\bin"
-              )
-              
-              foreach ($path in $systemPaths) {
-                if (Test-Path (Join-Path $path $lib)) {
-                  Write-Host "    ✅ $lib found in $path"
-                  $found = $true
-                  break
-                }
-              }
-              
-              if (-not $found) {
-                Write-Host "    ❌ $lib NOT FOUND in any system path!"
-              }
-            }
-            
-            # 检查PATH中的MSYS2目录
-            Write-Host "Checking MSYS2 paths in PATH..."
-            $msys2Paths = $env:PATH -split ';' | Where-Object { $_ -like '*msys64*' }
-            if ($msys2Paths) {
-              Write-Host "  MSYS2 paths found:"
-              foreach ($path in $msys2Paths) {
-                Write-Host "    $path"
-                if (Test-Path $path) {
-                  Get-ChildItem $path -Name "*.dll" | Where-Object { $_ -like "*lapack*" -or $_ -like "*gfortran*" -or $_ -like "*quadmath*" } | ForEach-Object { Write-Host "      Found: $_" }
-                }
-              }
-            } else {
-              Write-Host "  ❌ No MSYS2 paths found in PATH!"
-            }
-            
-            # 检查当前Python环境的库
-            Write-Host "Checking Python environment libraries..."
-            $pythonLibPath = python -c "import sys; print(sys.prefix + '\\Lib')"
-            if (Test-Path $pythonLibPath) {
-              Write-Host "  Python lib path: $pythonLibPath"
-              Get-ChildItem $pythonLibPath -Name "*.dll" | Where-Object { $_ -like "*lapack*" -or $_ -like "*gfortran*" } | ForEach-Object { Write-Host "    Found: $_" }
-            }
-            
-            # 检查wheel包中的库文件
-            Write-Host "Checking wheel package contents..."
-            $sitePackages = python -c "import site; print(site.getsitepackages()[0])"
-            $irssgPackagePath = Join-Path $sitePackages "irssg"
-            if (Test-Path $irssgPackagePath) {
-              Write-Host "  irssg package path: $irssgPackagePath"
-              Write-Host "  Package contents:"
-              Get-ChildItem $irssgPackagePath -Recurse | Format-Table Name, Length, FullName
-              
-              # 检查bin目录
-              $binPath = Join-Path $irssgPackagePath "bin"
-              if (Test-Path $binPath) {
-                Write-Host "  Bin directory contents:"
-                Get-ChildItem $binPath | Format-Table Name, Length, FullName
-              }
-              
-              # 检查data目录
-              $dataPath = Join-Path $irssgPackagePath "data"
-              if (Test-Path $dataPath) {
-                Write-Host "  Data directory contents:"
-                Get-ChildItem $dataPath -Recurse | Select-Object Name, Length, FullName | Format-Table
-              }
-              
-              # 检查libs目录（delvewheel创建的）
-              $libsPath = Join-Path $irssgPackagePath "libs"
-              if (Test-Path $libsPath) {
-                Write-Host "  Libs directory contents (delvewheel):"
-                Get-ChildItem $libsPath | Format-Table Name, Length, FullName
-              } else {
-                Write-Host "  ❌ Libs directory not found (delvewheel may have failed)"
-              }
-            }
-            
-            # 检查wheel包是否正确安装
-            Write-Host "Checking wheel installation..."
-            try {
-              $wheelInfo = python -c "import irssg; print('Package location:', irssg.__file__)"
-              Write-Host "  $wheelInfo"
-              
-              # 检查包的详细信息
-              $packageInfo = python -c "import irssg; import os; print('Package dir:', os.path.dirname(irssg.__file__)); print('Available attrs:', [attr for attr in dir(irssg) if not attr.startswith('_')])"
-              Write-Host "  $packageInfo"
-            } catch {
-              Write-Host "  ❌ Could not import irssg: $_"
-            }
-            
-            # 尝试加载关键库文件
-            Write-Host "Testing library loading..."
-            try {
-              $testLibs = @("liblapack", "libgfortran-5", "libquadmath-0")
-              foreach ($lib in $testLibs) {
-                $libPath = "C:\msys64\ucrt64\bin\$lib.dll"
-                if (Test-Path $libPath) {
-                  Write-Host "    Testing $lib.dll..."
-                  try {
-                    $null = [System.Runtime.InteropServices.DllImport]::GetDelegateForFunctionPointer([System.IntPtr]::Zero, [System.Type]::GetType("System.IntPtr"))
-                    Write-Host "      ✅ $lib.dll can be loaded"
-                  } catch {
-                    Write-Host "      ❌ $lib.dll load failed: $_"
-                  }
-                } else {
-                  Write-Host "    ❌ $lib.dll not found at expected path"
-                }
-              }
-            } catch {
-              Write-Host "  Library loading test failed: $_"
-            }
-            
-          } catch {
-            Write-Host "  Could not check dependencies: $_"
+          # 显示输出
+          if (Test-Path "output.txt") {
+            Write-Host "Standard Output:"
+            Get-Content "output.txt" | ForEach-Object { Write-Host "  $_" }
           }
           
-          try {
-            # 检查数据文件路径
-            Write-Host "Checking data file paths..."
-            $pythonPath = python -c "import sys; print(sys.prefix)"
-            $sitePackages = python -c "import site; print(site.getsitepackages()[0])"
-            $irssgDataPath = Join-Path $sitePackages "irssg\data"
-            Write-Host "  Expected data path: $irssgDataPath"
-            if (Test-Path $irssgDataPath) {
-              Write-Host "  ✅ Data directory exists"
-              Get-ChildItem $irssgDataPath -Recurse | Select-Object Name, Length | Format-Table
-            } else {
-              Write-Host "  ❌ Data directory not found!"
-            }
-            
-            # 检查当前工作目录的文件
-            Write-Host "Current working directory files:"
-            Get-ChildItem | Format-Table Name, Length, FullName
-            
-            # 尝试直接运行irssg.exe查看错误
-            Write-Host "Testing direct execution to see errors..."
-            try {
-              & $deps "irssg.in" 2>&1
-              Write-Host "Direct execution completed"
-            } catch {
-              Write-Host "Direct execution failed: $_"
-            }
-            
-            # 使用Start-Process避免STDERR重定向问题
-            # 使用找到的irssg.exe路径
-            Write-Host "Testing with Start-Process..."
-            $process = Start-Process -FilePath $deps -ArgumentList "irssg.in" -Wait -PassThru -RedirectStandardOutput "output.txt" -RedirectStandardError "error.txt"
-            Write-Host "Process completed with exit code: $($process.ExitCode)"
-            
-            if (Test-Path "output.txt") {
-              Write-Host "Standard Output:"
-              Get-Content "output.txt" | ForEach-Object { Write-Host "  $_" }
-            } else {
-              Write-Host "No standard output file found"
-            }
-            
-            if (Test-Path "error.txt") {
-              Write-Host "Standard Error:"
-              Get-Content "error.txt" | ForEach-Object { Write-Host "  $_" }
-            } else {
-              Write-Host "No error output file found"
-            }
-            
-            # 清理临时文件
-            if (Test-Path "output.txt") { Remove-Item "output.txt" }
-            if (Test-Path "error.txt") { Remove-Item "error.txt" }
-            
-            # 如果exit code不是0，尝试分析错误
-            if ($process.ExitCode -ne 0) {
-              Write-Host "Warning: irssg command failed with exit code $($process.ExitCode)"
-              Write-Host "Exit code $($process.ExitCode) analysis:"
-              if ($process.ExitCode -eq -1) {
-                Write-Host "  -1: Process terminated by signal or crash"
-                Write-Host "  - Possible causes:"
-                Write-Host "    * Missing runtime libraries (DLLs)"
-                Write-Host "    * Data file path issues"
-                Write-Host "    * Memory allocation failure"
-                Write-Host "    * Permission denied"
-              } else {
-                Write-Host "  $($process.ExitCode): Unknown error code"
-              }
-              Write-Host "The command execution was successful, but the Fortran program encountered an error"
-            }
-            
-          } catch {
-            Write-Host "irssg command failed with exception: $_"
+          if (Test-Path "error.txt") {
+            Write-Host "Standard Error:"
+            Get-Content "error.txt" | ForEach-Object { Write-Host "  $_" }
           }
+          
+          # 清理临时文件
+          if (Test-Path "output.txt") { Remove-Item "output.txt" }
+          if (Test-Path "error.txt") { Remove-Item "error.txt" }
           
           Write-Host "✅ All Windows tests completed"
 

@@ -11,6 +11,9 @@ project('irssg', 'fortran', 'cpp',
 # Get Fortran compiler
 fortran_compiler = meson.get_compiler('fortran')
 
+# Get C compiler for Windows checks
+c_compiler = meson.get_compiler('c')
+
 # Set macOS deployment target for compatibility
 if host_machine.system() == 'darwin'
   macos_target = run_command('python', '-c', 'import os; print(os.environ.get("MACOSX_DEPLOYMENT_TARGET", "14.0"))', check: false).stdout().strip()
@@ -18,6 +21,9 @@ if host_machine.system() == 'darwin'
   add_project_arguments('-mmacosx-version-min=' + macos_target, language: 'fortran')
   add_project_arguments('-mmacosx-version-min=' + macos_target, language: 'cpp')
 endif
+
+# Initialize link_args for platform-specific linking
+link_args = []
 
 # Force legacy Fortran with no line length limits - this must work!
 legacy_flags = [
@@ -29,6 +35,27 @@ legacy_flags = [
 
 # Add all flags at once - this should override any default settings
 add_project_arguments(legacy_flags, language: 'fortran')
+
+# Initialize fortran_args for MPI and other flags
+fortran_args = []
+
+# Add MPI preprocessor definition if MPI is found
+# For wheels/packaging builds, we use runtime MPI detection only
+is_wheel_build = run_command('python', '-c', 'import os; print(os.environ.get("CIBUILDWHEEL", "false"))', check: false).stdout().strip()
+
+# Enable MPI on all platforms where MPI is available
+# Note: mpi_dep will be defined later, so we check platform first
+if host_machine.system() == 'darwin' or host_machine.system() == 'linux'
+  fortran_args += ['-DMPI']
+  
+  if is_wheel_build == '1'
+    message('Building wheel with compile-time MPI support for ' + host_machine.system())
+  else
+    message('Building with compile-time MPI support for ' + host_machine.system())
+  endif
+else
+  message('Building in serial mode - MPI not found or not supported.')
+endif
 
 # Python dependency
 py_mod = import('python')
@@ -64,6 +91,33 @@ endif
 # Platform-specific configuration
 message('Host machine: ' + host_machine.system())
 message('Build machine: ' + build_machine.system())
+
+# For Windows, add additional system libraries and ensure consistent toolchain
+if host_machine.system() == 'windows'
+  if fortran_compiler.get_id().startswith('gcc')
+    message('Windows: Using MinGW/GCC toolchain with enhanced DLL support')
+    # Add runtime libraries with explicit paths for better DLL discovery
+    link_args += ['-LC:/msys64/mingw64/bin', '-LC:/msys64/mingw64/lib']
+    link_args += ['-lgfortran', '-lquadmath', '-lm', '-lwinpthread']
+    
+    # Add runtime DLL search paths
+    link_args += ['-Wl,--enable-auto-import']
+    link_args += ['-Wl,--enable-runtime-pseudo-reloc']
+    
+    message('Windows: Added MinGW runtime libraries and DLL search paths')
+    
+    # Ensure we use MinGW linker, not MSVC
+    if c_compiler.get_id() != 'gcc'
+      warning('Windows: C compiler is not GCC, this may cause linking issues')
+      warning('Consider setting CC=gcc and CXX=g++ for consistent toolchain'    )
+  endif
+endif
+
+if build_machine.system() == 'windows' and fortran_compiler.get_id().startswith('intel')
+  mpi_lib_dir = 'C:/Program Files (x86)/Intel/oneAPI/mpi/latest/lib/'
+  link_args += ['-LIBPATH:' + mpi_lib_dir, 'impi.lib']
+endif
+endif
 
 # Compile lib_ssg library
 lib_ssg_sources = files(
@@ -170,16 +224,29 @@ if is_cibuildwheel == '1'
       install_dir: py3.get_install_dir() / 'irssg' / 'bin'
     )
   elif host_machine.system() == 'windows'
-    # Windows: use MSYS2 UCRT64 toolchain (like wanniertools)
-    message('Windows detected: using MSYS2 UCRT64 toolchain')
+    # Windows: Manually add MPI dependency for MS-MPI (MinGW compatible)
+    message('Windows: Manually configuring MPI dependency for MS-MPI')
+    
+    # Set MPI include and lib directories for Meson
+    mpi_inc_dir = 'C:/msys64/ucrt64/include'
+    mpi_lib_dir = 'C:/msys64/ucrt64/lib'
+    
+    mpi_dep = declare_dependency(
+      include_directories: include_directories(mpi_inc_dir),
+      link_args: ['-L' + mpi_lib_dir, '-lmsmpi'] # Link against the generated libmsmpi.a
+    )
+    message('Windows: MPI dependency configured.')
+    
     irssg_exe = executable('irssg',
       'fortran/src/main.f90',
       link_with: [lib_ssg, src_irssg_lib],
+      dependencies: [mpi_dep],
       include_directories: [
         include_directories('fortran/src'),
         include_directories('fortran/lib'),
       ],
       link_args: ['-LC:/msys64/ucrt64/lib', '-llapack', '-lgfortran'],
+      fortran_args: ['-DMPI', '-I' + 'C:/msys64/ucrt64/include'],
       install: true,
       install_dir: py3.get_install_dir() / 'irssg' / 'bin'
     )
