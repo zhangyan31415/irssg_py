@@ -604,28 +604,30 @@ jobs:
           Write-Host "Executing: irssg irssg.in"
           
           try {
-            # 直接执行，不使用Job（避免路径问题）
-            $output = & irssg irssg.in 2>&1
-            $exitCode = $LASTEXITCODE
-            Write-Host "irssg command completed with exit code: $exitCode"
-            Write-Host "Output: $output"
+            # 使用Start-Process避免STDERR重定向问题
+            $process = Start-Process -FilePath "irssg" -ArgumentList "irssg.in" -Wait -PassThru -RedirectStandardOutput "output.txt" -RedirectStandardError "error.txt"
+            Write-Host "Process completed with exit code: $($process.ExitCode)"
+            
+            if (Test-Path "output.txt") {
+              Write-Host "Standard Output:"
+              Get-Content "output.txt" | ForEach-Object { Write-Host "  $_" }
+            } else {
+              Write-Host "No standard output file found"
+            }
+            
+            if (Test-Path "error.txt") {
+              Write-Host "Standard Error:"
+              Get-Content "error.txt" | ForEach-Object { Write-Host "  $_" }
+            } else {
+              Write-Host "No error output file found"
+            }
+            
+            # 清理临时文件
+            if (Test-Path "output.txt") { Remove-Item "output.txt" }
+            if (Test-Path "error.txt") { Remove-Item "error.txt" }
+            
           } catch {
             Write-Host "irssg command failed with exception: $_"
-            Write-Host "Trying alternative execution method..."
-            
-            # 备用方法：使用Start-Process
-            try {
-              $process = Start-Process -FilePath "irssg" -ArgumentList "irssg.in" -Wait -PassThru -RedirectStandardOutput "output.txt" -RedirectStandardError "error.txt"
-              Write-Host "Process completed with exit code: $($process.ExitCode)"
-              if (Test-Path "output.txt") {
-                Write-Host "Output: $(Get-Content output.txt)"
-              }
-              if (Test-Path "error.txt") {
-                Write-Host "Error: $(Get-Content error.txt)"
-              }
-            } catch {
-              Write-Host "Alternative method also failed: $_"
-            }
           }
           
           Write-Host "✅ All Windows tests completed"
