@@ -230,6 +230,8 @@ jobs:
       - name: Test irssg functionality (Linux)
         run: |
           echo "=== Linux功能测试 ==="
+          cd examples/test_irssg
+          ls -la  # 显示可用文件
           
           # 测试基本命令
           irssg --version
@@ -239,8 +241,7 @@ jobs:
           irssg --validate
           
           # 进入测试目录并运行
-          cd examples/test_irssg
-          ls -la  # 显示可用文件
+
           
           # 测试完整执行
           timeout 30s irssg irssg.in || echo "irssg command completed (may have timed out or finished)"
