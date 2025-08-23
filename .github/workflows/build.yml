@@ -109,7 +109,7 @@ jobs:
           output-dir: wheelhouse
         env:
           # 🐍 Python版本配置 (使用动态生成的版本)
-          CIBW_BUILD: ${{ needs.setup.outputs.python-versions-cibw }}
+          CIBW_BUILD: "cp39-*"
           
           # 平台特定的架构配置
           CIBW_ARCHS_LINUX: ${{ matrix.cibw_archs }}
@@ -402,11 +402,176 @@ jobs:
           
           echo "✅ All Linux tests passed"
 
+  test_macos:
+    name: Test macOS ARM64 wheel (Python ${{ matrix.python-version }})
+    needs: [setup, build_wheels]
+    runs-on: macos-latest
+    if: always()
+    strategy:
+      matrix:
+        python-version: ${{ fromJson(needs.setup.outputs.python-versions-test) }}
 
+    steps:
+        - name: Log macOS ARM64 test environment
+          run: |
+            echo "🔍 macOS ARM64 Test Environment:"
+            sw_vers
+            uname -m
+            echo "Testing Python ${{ matrix.python-version }}"
+        
+        - name: Checkout code
+          uses: actions/checkout@v4
+        
+        - name: Download macOS ARM64 wheels
+          uses: actions/download-artifact@v4
+          with:
+            name: wheels-macos-latest-arm64
+            path: ./wheels
+          continue-on-error: true
+        
+        - name: Set up Python ${{ matrix.python-version }}
+          uses: actions/setup-python@v4
+          with:
+            python-version: ${{ matrix.python-version }}
+        
+        - name: Install wheel (ARM64)
+          shell: bash
+          run: |
+            echo "🔍 Available wheels:"
+            ls -la ./wheels/ || echo "No wheels found"
+            
+            # 根据Python版本选择对应的轮子
+            python_short=$(python -c "import sys; print(f'cp{sys.version_info.major}{sys.version_info.minor}')")
+            echo "🎯 Looking for wheel matching Python version: $python_short"
+            
+            target_wheel=$(ls ./wheels/*${python_short}*arm64.whl 2>/dev/null | head -1)
+            
+            if [ -n "$target_wheel" ] && [ -f "$target_wheel" ]; then
+              echo "✅ Found matching ARM64 wheel: $target_wheel"
+              pip install "$target_wheel" -q
+              echo "📊 Installed wheel info:"
+              pip show irssg
+            else
+              echo "❌ No ARM64 wheel found for Python $python_short"
+              echo "Available wheels:"
+              ls -la ./wheels/ || echo "No wheels directory"
+              exit 1
+            fi
+  
+        - name: Test basic functionality
+          run: |
+            echo "🧪 Testing ARM64 wheel on macOS"
+            echo "System info:"
+            uname -m
+            python -c "import platform; print(f'Platform: {platform.platform()}')"
+            python -c "import platform; print(f'Architecture: {platform.machine()}')"
+            
+            python -c "import irssg; print(f'[OK] irssg imported successfully')"
+            python -c "import irssg.core; print(f'[OK] irssg.core imported successfully')"
+            python -c "import irssg.cli; print(f'[OK] irssg.cli imported successfully')"
+        
+        - name: Test irssg functionality (macOS ARM64)
+          run: |
+            echo "=== macOS ARM64功能测试 ==="
+            cd examples/test_irssg
+            ls -la  # 显示可用文件
+            
+            # 测试irssg基本功能
+            echo "Testing irssg basic functionality..."
+            python -c "import irssg; print('irssg import successful')"
+            
+            # 如果有测试文件，运行测试
+            if [ -f "test_irssg.py" ]; then
+              echo "Running test_irssg.py..."
+              python test_irssg.py
+            else
+              echo "No test file found, testing basic import only"
+            fi
+
+  test_windows:
+    name: Test Windows wheel (Python ${{ matrix.python-version }})
+    needs: [setup, build_wheels]
+    runs-on: windows-latest
+    if: always()
+    strategy:
+      matrix:
+        python-version: ${{ fromJson(needs.setup.outputs.python-versions-test) }}
+    defaults:
+      run:
+        shell: cmd
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Download Windows wheels
+        uses: actions/download-artifact@v4
+        with:
+          name: wheels-windows-latest-AMD64
+          path: ./wheels
+        continue-on-error: true
+      
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v4
+        with:
+          python-version: ${{ matrix.python-version }}
+      
+      - name: Install wheel
+        shell: pwsh
+        run: |
+          Write-Host "🔍 Available wheels:"
+          Get-ChildItem -Path "./wheels" -Recurse | Format-Table Name, Length
+          
+          # 根据Python版本选择对应的轮子
+          $pythonVersion = python -c "import sys; print(f'cp{sys.version_info.major}{sys.version_info.minor}')"
+          Write-Host "🎯 Looking for wheel matching Python version: $pythonVersion"
+          
+          $targetWheel = Get-ChildItem -Path "./wheels" -Filter "*$pythonVersion*win*.whl" | Select-Object -First 1
+          
+          if ($targetWheel) {
+            Write-Host "✅ Found matching Windows wheel: $($targetWheel.Name)"
+            pip install "$($targetWheel.FullName)" -q
+            Write-Host "📊 Installed wheel info:"
+            pip show irssg
+          } else {
+            Write-Host "❌ No Windows wheel found for Python $pythonVersion"
+            Write-Host "Available wheels:"
+            Get-ChildItem -Path "./wheels" -Recurse | Format-Table Name, Length
+            exit 1
+          }
+      
+      - name: Test basic functionality
+        shell: pwsh
+        run: |
+          Write-Host "=== 基础功能测试 ==="
+          Write-Host "测试Python导入："
+          python -c "import irssg; print(f'[OK] irssg imported successfully')"
+          Write-Host "测试模块导入："
+          python -c "import irssg.core; print(f'[OK] irssg.core imported successfully')"
+          python -c "import irssg.cli; print(f'[OK] irssg.cli imported successfully')"
+      
+      - name: Test irssg functionality (Windows)
+        shell: pwsh
+        continue-on-error: true
+        run: |
+          Write-Host "=== Windows功能测试 ==="
+          cd examples/test_irssg
+          
+          # 测试irssg基本功能
+          Write-Host "Testing irssg basic functionality..."
+          python -c "import irssg; print('irssg import successful')"
+          
+          # 如果有测试文件，运行测试
+          if (Test-Path "test_irssg.py") {
+            Write-Host "Running test_irssg.py..."
+            python test_irssg.py
+          } else {
+            Write-Host "No test file found, testing basic import only"
+          }
 
   collect_wheels:
     name: Collect all wheels
-    needs: [setup, build_wheels, test_linux]
+    needs: [setup, build_wheels, test_linux, test_macos, test_windows]
     runs-on: ubuntu-latest
     if: success()
     

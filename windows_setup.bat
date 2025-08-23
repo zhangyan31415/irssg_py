@@ -33,8 +33,8 @@ if errorlevel 1 (
     exit /b 1
 )
 
-echo "Running: C:\msys64\usr\bin\pacman.exe -S --noconfirm mingw-w64-ucrt-x86_64-gcc mingw-w64-ucrt-x86_64-gcc-fortran mingw-w64-ucrt-x86_64-lapack"
-C:\msys64\usr\bin\pacman.exe -S --noconfirm mingw-w64-ucrt-x86_64-gcc mingw-w64-ucrt-x86_64-gcc-fortran mingw-w64-ucrt-x86_64-lapack
+echo "Running: C:\msys64\usr\bin\pacman.exe -S --noconfirm mingw-w64-ucrt-x86_64-gcc mingw-w64-ucrt-x86_64-gcc-fortran mingw-w64-ucrt-x86_64-lapack mingw-w64-ucrt-x86_64-gcc-libs mingw-w64-ucrt-x86_64-libgccjit mingw-w64-ucrt-x86_64-libquadmath"
+C:\msys64\usr\bin\pacman.exe -S --noconfirm mingw-w64-ucrt-x86_64-gcc mingw-w64-ucrt-x86_64-gcc-fortran mingw-w64-ucrt-x86_64-lapack mingw-w64-ucrt-x86_64-gcc-libs mingw-w64-ucrt-x86_64-libgccjit mingw-w64-ucrt-x86_64-libquadmath
 if errorlevel 1 (
     echo "❌ pacman install failed!"
     exit /b 1
