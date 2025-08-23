@@ -62,22 +62,8 @@ jobs:
           python-version: '3.9'
       
       # macOS: 安装 Homebrew 依赖
-      - name: Install dependencies (macOS)
-        if: runner.os == 'macOS'
-        run: |
-          brew update
-          brew install gcc lapack
-          # 确保gfortran在PATH中
-          echo "$(brew --prefix)/bin" >> $GITHUB_PATH
-          # 设置编译器环境变量 - 使用clang而不是gcc
-          echo "FC=$(brew --prefix)/bin/gfortran" >> $GITHUB_ENV
-          echo "CC=clang" >> $GITHUB_ENV
-          echo "CXX=clang++" >> $GITHUB_ENV
-          # 验证编译器安装
-          which gfortran
-          echo "gfortran --version"
-          gfortran --version
-          echo "✅ Using clang/clang++ with gfortran for macOS builds"
+      # macOS依赖现在在CIBW_BEFORE_BUILD_MACOS中处理
+      # 删除旧的macOS依赖安装步骤，避免与OpenBLAS策略冲突
       
       # Windows: 设置 Visual Studio
       - name: Set up MSVC (Windows)
