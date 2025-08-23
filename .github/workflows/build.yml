@@ -603,6 +603,26 @@ jobs:
           Write-Host "Testing full execution..."
           Write-Host "Executing: irssg irssg.in"
           
+          # 检查环境变量
+          Write-Host "Environment variables:"
+          Write-Host "  PATH: $env:PATH"
+          Write-Host "  IRSSG_DATA_PATH: $env:IRSSG_DATA_PATH"
+          
+          # 检查irssg.exe的依赖
+          Write-Host "Checking irssg.exe dependencies..."
+          try {
+            $deps = Get-Item "irssg.exe" | Select-Object -ExpandProperty FullName
+            Write-Host "  irssg.exe path: $deps"
+            
+            # 使用dumpbin检查依赖（如果可用）
+            if (Get-Command "dumpbin" -ErrorAction SilentlyContinue) {
+              Write-Host "  Dependencies:"
+              dumpbin /dependents "irssg.exe" | Select-String "\.dll"
+            }
+          } catch {
+            Write-Host "  Could not check dependencies: $_"
+          }
+          
           try {
             # 使用Start-Process避免STDERR重定向问题
             $process = Start-Process -FilePath "irssg" -ArgumentList "irssg.in" -Wait -PassThru -RedirectStandardOutput "output.txt" -RedirectStandardError "error.txt"
@@ -629,7 +649,11 @@ jobs:
             # 如果exit code不是0，尝试分析错误
             if ($process.ExitCode -ne 0) {
               Write-Host "Warning: irssg command failed with exit code $($process.ExitCode)"
-              Write-Host "This might be due to memory limitations or other runtime issues"
+              Write-Host "Exit code 255 usually indicates:"
+              Write-Host "  - Memory issues"
+              Write-Host "  - Missing runtime libraries"
+              Write-Host "  - Data file path problems"
+              Write-Host "  - Permission issues"
               Write-Host "The command execution was successful, but the Fortran program encountered an error"
             }
             
