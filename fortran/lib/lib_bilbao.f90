@@ -31,6 +31,8 @@ subroutine bilbao_read(sgn)
     character(len=2)   :: nametmp, nametmp2 
     character(len=15)  :: ckpoint 
     character(len=40)  :: ListIrrep
+    
+    logical            :: file_exists
 
     ! bilbao table file
     integer,     parameter   :: bb = 11
@@ -43,9 +45,24 @@ subroutine bilbao_read(sgn)
     elseif (sgn < 100) then; write(csgn,'(I2)') sgn
     else                   ; write(csgn,'(I3)') sgn
     endif 
-    ! For now, use a default path - can be made configurable later
-    spgpath = './kLittleGroups'
-    write(6,*) "Using default data path: ", trim(spgpath) 
+    ! Try to find data files using environment variable or fallback to current directory
+    call get_environment_variable('IRSSG_DATA_PATH', spgpath)
+    
+    ! If environment variable not set, use current directory
+    if (len_trim(spgpath) == 0) then
+      spgpath = './kLittleGroups'
+    endif
+    
+    ! Check if data exists in specified path
+    inquire(file=trim(spgpath)//'/kLG_'//trim(csgn)//'.data', exist=file_exists)
+    
+    ! If not found, try current directory as fallback
+    if (.not. file_exists) then
+      spgpath = './kLittleGroups'
+      write(6,*) "Warning: Data not found in IRSSG_DATA_PATH, using current directory"
+    endif
+    
+    write(6,*) "Using data path: ", trim(spgpath) 
     spgfile = trim(spgpath)//'/kLG_'//trim(csgn)//'.data'
     write(*,*) "SPGFILE :", trim(adjustl(spgfile)) 
 

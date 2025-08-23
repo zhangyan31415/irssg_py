@@ -12,6 +12,31 @@ import os
 import subprocess
 from pathlib import Path
 
+# Set up data path environment variable for Fortran code
+def _setup_data_path():
+    """Set up the data path environment variable for Fortran code"""
+    # Get the directory where this package is installed
+    package_dir = Path(__file__).resolve().parent
+    
+    # Look for data directory in various possible locations
+    possible_paths = [
+        package_dir / 'data' / 'kLittleGroups',
+        package_dir / '..' / 'data' / 'kLittleGroups',
+        package_dir / '..' / '..' / 'data' / 'kLittleGroups',
+    ]
+    
+    # Set the environment variable to the first existing path
+    for path in possible_paths:
+        if path.exists():
+            os.environ['IRSSG_DATA_PATH'] = str(path)
+            break
+    else:
+        # If no data directory found, set to current working directory
+        os.environ['IRSSG_DATA_PATH'] = './kLittleGroups'
+
+# Set up data path when module is imported
+_setup_data_path()
+
 def find_irssg_executable():
     """Find the IRSSG Fortran executable"""
     # First try to find it in the package's bin directory
