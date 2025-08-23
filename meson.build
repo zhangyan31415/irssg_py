@@ -33,26 +33,18 @@ if not np_dep.found()
   np_dep = py3.dependency()
 endif
 
-# BLAS/LAPACK dependency - make optional for now
-blas_dep = dependency('openblas', required: false)
+# BLAS/LAPACK dependency - required for Fortran code
+blas_dep = dependency('openblas', required: true)
 if not blas_dep.found()
-  blas_dep = dependency('blas', required: false)
-endif
-if not blas_dep.found()
-  blas_dep = dependency('mkl', required: false)
-endif
-if not blas_dep.found()
-  # Create a dummy dependency
-  blas_dep = declare_dependency()
+  blas_dep = dependency('blas', required: true)
 endif
 
-lapack_dep = dependency('lapack', required: false)
+# LAPACK is required for zheev_ function
+lapack_dep = dependency('lapack', required: true)
 if not lapack_dep.found()
-  lapack_dep = dependency('openblas', required: false)
-endif
-if not lapack_dep.found()
-  # Create a dummy dependency
-  lapack_dep = declare_dependency()
+  message('LAPACK not found, trying to find it in OpenBLAS...')
+  # Some OpenBLAS builds include LAPACK functions
+  lapack_dep = dependency('openblas', required: true)
 endif
 
 # Compile lib_ssg library

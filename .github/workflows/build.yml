@@ -95,6 +95,25 @@ jobs:
             ls -la /usr/lib64/liblapack* || echo "LAPACK not found"
             ls -la /usr/lib64/libgfortran* || echo "gfortran runtime not found"
             
+            # 设置库路径环境变量
+            export LD_LIBRARY_PATH="/usr/lib64:/usr/local/lib64:$LD_LIBRARY_PATH"
+            export PKG_CONFIG_PATH="/usr/lib64/pkgconfig:/usr/local/lib64/pkgconfig:$PKG_CONFIG_PATH"
+            
+            # 验证LAPACK函数可用性
+            echo "🔍 Verifying LAPACK functions..."
+            if [ -f /usr/lib64/liblapack.so ]; then
+              echo "✅ LAPACK library found"
+              nm -D /usr/lib64/liblapack.so | grep -i zheev || echo "⚠️  zheev function not found in LAPACK"
+            else
+              echo "❌ LAPACK library not found"
+            fi
+            
+            # 检查OpenBLAS是否包含LAPACK
+            if [ -f /usr/lib64/libopenblas.so ]; then
+              echo "🔍 Checking OpenBLAS for LAPACK functions..."
+              nm -D /usr/lib64/libopenblas.so | grep -i zheev || echo "⚠️  zheev function not found in OpenBLAS"
+            fi
+            
             echo "✅ Dependencies installed successfully"
           
 
