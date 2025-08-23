@@ -88,16 +88,16 @@ jobs:
               ln -sf libgfortran.so.5 /usr/lib64/libgfortran.so.3
             fi
             
+            # 设置库路径环境变量
+            export LD_LIBRARY_PATH="/usr/lib64:/usr/local/lib64:$LD_LIBRARY_PATH"
+            export PKG_CONFIG_PATH="/usr/lib64/pkgconfig:/usr/local/lib64/pkgconfig:$PKG_CONFIG_PATH"
+            
             # 验证数学库安装
             echo "🔍 Installed math libraries:"
             ls -la /usr/lib64/libopenblas* || echo "OpenBLAS not found"
             ls -la /usr/lib64/libblas* || echo "BLAS not found"
             ls -la /usr/lib64/liblapack* || echo "LAPACK not found"
             ls -la /usr/lib64/libgfortran* || echo "gfortran runtime not found"
-            
-            # 设置库路径环境变量
-            export LD_LIBRARY_PATH="/usr/lib64:/usr/local/lib64:$LD_LIBRARY_PATH"
-            export PKG_CONFIG_PATH="/usr/lib64/pkgconfig:/usr/local/lib64/pkgconfig:$PKG_CONFIG_PATH"
             
             # 验证LAPACK函数可用性
             echo "🔍 Verifying LAPACK functions..."
@@ -112,6 +112,61 @@ jobs:
             if [ -f /usr/lib64/libopenblas.so ]; then
               echo "🔍 Checking OpenBLAS for LAPACK functions..."
               nm -D /usr/lib64/libopenblas.so | grep -i zheev || echo "⚠️  zheev function not found in OpenBLAS"
+            fi
+            
+            # 确保pkg-config能找到库
+            echo "🔧 Setting up pkg-config..."
+            if [ -f /usr/lib64/pkgconfig/openblas.pc ]; then
+              echo "✅ OpenBLAS pkg-config file found"
+            else
+              echo "⚠️  OpenBLAS pkg-config file not found, creating one..."
+              mkdir -p /usr/lib64/pkgconfig
+              cat > /usr/lib64/pkgconfig/openblas.pc << EOF
+            prefix=/usr
+            libdir=/usr/lib64
+            includedir=/usr/include
+            
+            Name: OpenBLAS
+            Description: OpenBLAS is an optimized BLAS library
+            Version: 0.3.0
+            Libs: -L\${libdir} -lopenblas
+            Cflags: -I\${includedir}
+            EOF
+            fi
+            
+            if [ -f /usr/lib64/pkgconfig/lapack.pc ]; then
+              echo "✅ LAPACK pkg-config file found"
+            else
+              echo "⚠️  LAPACK pkg-config file not found, creating one..."
+              cat > /usr/lib64/pkgconfig/lapack.pc << EOF
+            prefix=/usr
+            libdir=/usr/lib64
+            includedir=/usr/include
+            
+            Name: LAPACK
+            Description: LAPACK is a library of linear algebra routines
+            Version: 3.9.0
+            Libs: -L\${libdir} -llapack
+            Cflags: -I\${includedir}
+            Requires: blas
+            EOF
+            fi
+            
+            if [ -f /usr/lib64/pkgconfig/blas.pc ]; then
+              echo "✅ BLAS pkg-config file found"
+            else
+              echo "⚠️  BLAS pkg-config file not found, creating one..."
+              cat > /usr/lib64/pkgconfig/blas.pc << EOF
+            prefix=/usr
+            libdir=/usr/lib64
+            includedir=/usr/include
+            
+            Name: BLAS
+            Description: Basic Linear Algebra Subprograms
+            Version: 3.9.0
+            Libs: -L\${libdir} -lblas
+            Cflags: -I\${includedir}
+            EOF
             fi
             
             echo "✅ Dependencies installed successfully"

@@ -33,18 +33,27 @@ if not np_dep.found()
   np_dep = py3.dependency()
 endif
 
-# BLAS/LAPACK dependency - required for Fortran code
-blas_dep = dependency('openblas', required: true)
-if not blas_dep.found()
-  blas_dep = dependency('blas', required: true)
-endif
+# BLAS/LAPACK dependency - check if we're in cibuildwheel environment
+is_cibuildwheel = run_command('python', '-c', 'import os; print(os.environ.get("CIBUILDWHEEL", "false"))', check: false).stdout().strip()
 
-# LAPACK is required for zheev_ function
-lapack_dep = dependency('lapack', required: true)
-if not lapack_dep.found()
-  message('LAPACK not found, trying to find it in OpenBLAS...')
-  # Some OpenBLAS builds include LAPACK functions
-  lapack_dep = dependency('openblas', required: true)
+if is_cibuildwheel == '1'
+  # In cibuildwheel environment, use manual linking only
+  message('cibuildwheel detected: using manual library linking only')
+  blas_dep = dependency('', required: false)  # Force not found
+  lapack_dep = dependency('', required: false)  # Force not found
+else
+  # Normal build environment, use meson detection
+  blas_dep = dependency('openblas', required: false)
+  if not blas_dep.found()
+    blas_dep = dependency('blas', required: false)
+  endif
+  
+  lapack_dep = dependency('lapack', required: false)
+  if not lapack_dep.found()
+    message('LAPACK not found, trying to find it in OpenBLAS...')
+    # Some OpenBLAS builds include LAPACK functions
+    lapack_dep = dependency('openblas', required: false)
+  endif
 endif
 
 # Compile lib_ssg library
@@ -58,11 +67,20 @@ lib_ssg_sources = files(
   'fortran/lib/mathlib.f90',
 )
 
-lib_ssg = static_library('irssg_lib',
-  lib_ssg_sources,
-  dependencies: [blas_dep, lapack_dep],
-  include_directories: include_directories('fortran/lib'),
-)
+if is_cibuildwheel == '1'
+  # In cibuildwheel environment, use manual linking
+  lib_ssg = static_library('irssg_lib',
+    lib_ssg_sources,
+    include_directories: include_directories('fortran/lib'),
+  )
+else
+  # Normal build environment, use dependency system
+  lib_ssg = static_library('irssg_lib',
+    lib_ssg_sources,
+    dependencies: [blas_dep, lapack_dep],
+    include_directories: include_directories('fortran/lib'),
+  )
+endif
 
 # Compile src_irssg modules
 src_irssg_sources = files(
@@ -74,28 +92,57 @@ src_irssg_sources = files(
   'fortran/src/wave_data.f90',
 )
 
-src_irssg_lib = static_library('irssg_src',
-  src_irssg_sources,
-  dependencies: [blas_dep, lapack_dep],
-  link_with: [lib_ssg],
-  include_directories: [
-    include_directories('fortran/src'),
-    include_directories('fortran/lib'),
-  ],
-)
+if is_cibuildwheel == '1'
+  # In cibuildwheel environment, use manual linking
+  src_irssg_lib = static_library('irssg_src',
+    src_irssg_sources,
+    link_with: [lib_ssg],
+    include_directories: [
+      include_directories('fortran/src'),
+      include_directories('fortran/lib'),
+    ],
+  )
+else
+  # Normal build environment, use dependency system
+  src_irssg_lib = static_library('irssg_src',
+    src_irssg_sources,
+    dependencies: [blas_dep, lapack_dep],
+    link_with: [lib_ssg],
+    include_directories: [
+      include_directories('fortran/src'),
+      include_directories('fortran/lib'),
+    ],
+  )
+endif
 
 # Build the main Fortran executable
-irssg_exe = executable('irssg',
-  'fortran/src/main.f90',
-  dependencies: [blas_dep, lapack_dep],
-  link_with: [lib_ssg, src_irssg_lib],
-  include_directories: [
-    include_directories('fortran/src'),
-    include_directories('fortran/lib'),
-  ],
-  install: true,
-  install_dir: py3.get_install_dir() / 'irssg' / 'bin'
-)
+if is_cibuildwheel == '1'
+  # In cibuildwheel environment, use manual linking
+  irssg_exe = executable('irssg',
+    'fortran/src/main.f90',
+    link_with: [lib_ssg, src_irssg_lib],
+    include_directories: [
+      include_directories('fortran/src'),
+      include_directories('fortran/lib'),
+    ],
+    link_args: ['-L/usr/lib64', '-lopenblas', '-llapack'],
+    install: true,
+    install_dir: py3.get_install_dir() / 'irssg' / 'bin'
+  )
+else
+  # Normal build environment, use dependency system
+  irssg_exe = executable('irssg',
+    'fortran/src/main.f90',
+    dependencies: [blas_dep, lapack_dep],
+    link_with: [lib_ssg, src_irssg_lib],
+    include_directories: [
+      include_directories('fortran/src'),
+      include_directories('fortran/lib'),
+    ],
+    install: true,
+    install_dir: py3.get_install_dir() / 'irssg' / 'bin'
+  )
+endif
 
 # Install Python package files
 py3.install_sources([
