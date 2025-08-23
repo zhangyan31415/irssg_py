@@ -561,6 +561,9 @@ jobs:
       - name: Test irssg functionality (Windows)
         shell: pwsh
         continue-on-error: true
+        env:
+          PATH: C:\msys64\ucrt64\bin;${{ env.PATH }}
+          IRSSG_DATA_PATH: ${{ env.IRSSG_DATA_PATH }}
         run: |
           Write-Host "=== Windows功能测试 ==="
           
@@ -719,6 +722,15 @@ jobs:
                 Write-Host "  Data directory contents:"
                 Get-ChildItem $dataPath -Recurse | Select-Object Name, Length, FullName | Format-Table
               }
+              
+              # 检查libs目录（delvewheel创建的）
+              $libsPath = Join-Path $irssgPackagePath "libs"
+              if (Test-Path $libsPath) {
+                Write-Host "  Libs directory contents (delvewheel):"
+                Get-ChildItem $libsPath | Format-Table Name, Length, FullName
+              } else {
+                Write-Host "  ❌ Libs directory not found (delvewheel may have failed)"
+              }
             }
             
             # 检查wheel包是否正确安装
@@ -726,6 +738,10 @@ jobs:
             try {
               $wheelInfo = python -c "import irssg; print('Package location:', irssg.__file__)"
               Write-Host "  $wheelInfo"
+              
+              # 检查包的详细信息
+              $packageInfo = python -c "import irssg; import os; print('Package dir:', os.path.dirname(irssg.__file__)); print('Available attrs:', [attr for attr in dir(irssg) if not attr.startswith('_')])"
+              Write-Host "  $packageInfo"
             } catch {
               Write-Host "  ❌ Could not import irssg: $_"
             }
