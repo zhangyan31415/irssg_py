@@ -10,7 +10,7 @@ build-backend = "mesonpy"
 # cibuildwheel配置
 [tool.cibuildwheel]
 # 构建哪些版本
-build = ["cp39-*", "cp310-*", "cp311-*"]
+build = ["cp39-*"]
 # 跳过哪些版本
 skip = ["pp*", "*musllinux*"]
 
@@ -21,8 +21,6 @@ test-command = [
     "python -c \"print('=== Testing wheel import and basic functionality ==='); import irssg; print(f'Package location: {irssg.__file__}'); print(f'Available modules: {[attr for attr in dir(irssg) if not attr.startswith(\\\"_\\\")]}')\""
 ]
 test-requires = ["pytest"]
-
-# 环境变量在各平台特定配置中设置
 
 # Linux特定配置
 [tool.cibuildwheel.linux]
@@ -36,16 +34,6 @@ before-build = [
     "echo 'Available CPU cores:' $(nproc)",
     "echo 'MAKEFLAGS:' $MAKEFLAGS"
 ]
-
-# macOS特定配置
-[tool.cibuildwheel.macos]
-archs = ["arm64"]
-environment = { FFLAGS = "-fallow-invalid-boz -fbackslash -ffree-line-length-none -fallow-argument-mismatch" }
-
-# Windows特定配置
-[tool.cibuildwheel.windows]
-archs = ["AMD64"]
-environment = { FFLAGS = "-fallow-invalid-boz -fbackslash -ffree-line-length-none -fallow-argument-mismatch" }
 
 [project]
 name = "irssg"
