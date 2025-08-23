@@ -10,7 +10,7 @@ build-backend = "mesonpy"
 # cibuildwheel配置
 [tool.cibuildwheel]
 # 构建哪些版本
-build = ["cp39-*"]
+build = ["cp39-*", "cp310-*", "cp311-*"]
 # 跳过哪些版本
 skip = ["pp*", "*musllinux*"]
 
@@ -33,6 +33,29 @@ before-build = [
     "echo 'Parallel build configuration:'",
     "echo 'Available CPU cores:' $(nproc)",
     "echo 'MAKEFLAGS:' $MAKEFLAGS"
+]
+
+# macOS特定配置
+[tool.cibuildwheel.macos]
+archs = ["x86_64", "arm64"]
+environment = { FFLAGS = "-fallow-invalid-boz -fbackslash -ffree-line-length-none -fallow-argument-mismatch" }
+before-build = [
+    "echo 'Building macOS wheels'",
+    "brew update",
+    "brew install gcc lapack",
+    "echo 'Setting up gfortran...'",
+    "echo 'FC=$(brew --prefix)/bin/gfortran' >> $GITHUB_ENV",
+    "echo 'CC=clang' >> $GITHUB_ENV",
+    "echo 'CXX=clang++' >> $GITHUB_ENV"
+]
+
+# Windows特定配置
+[tool.cibuildwheel.windows]
+archs = ["AMD64"]
+environment = { FFLAGS = "-fallow-invalid-boz -fbackslash -ffree-line-length-none -fallow-argument-mismatch" }
+before-build = [
+    "echo 'Building Windows wheels'",
+    "echo 'Setting up MSVC environment...'"
 ]
 
 [project]

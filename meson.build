@@ -55,6 +55,13 @@ else
   blas_dep = dependency('', required: false)  # Force not found
 endif
 
+# Platform-specific configuration
+host_machine = meson.get_external_property('host_machine', 'unknown')
+build_machine = meson.get_external_property('build_machine', 'unknown')
+
+message('Host machine: ' + host_machine)
+message('Build machine: ' + build_machine)
+
 # Compile lib_ssg library
 lib_ssg_sources = files(
   'fortran/lib/lib_comms.f90',
@@ -116,18 +123,47 @@ endif
 
 # Build the main Fortran executable
 if is_cibuildwheel == '1'
-  # In cibuildwheel environment, use minimal linking (only LAPACK for zheev)
-  irssg_exe = executable('irssg',
-    'fortran/src/main.f90',
-    link_with: [lib_ssg, src_irssg_lib],
-    include_directories: [
-      include_directories('fortran/src'),
-      include_directories('fortran/lib'),
-    ],
-    link_args: ['-L/usr/lib64', '-llapack', '-Wl,-rpath,/usr/lib64'],
-    install: true,
-    install_dir: py3.get_install_dir() / 'irssg' / 'bin'
-  )
+  # In cibuildwheel environment, use platform-specific linking
+  if host_machine.system() == 'darwin'
+    # macOS: use Homebrew paths
+    irssg_exe = executable('irssg',
+      'fortran/src/main.f90',
+      link_with: [lib_ssg, src_irssg_lib],
+      include_directories: [
+        include_directories('fortran/src'),
+        include_directories('fortran/lib'),
+      ],
+      link_args: ['-L/opt/homebrew/lib', '-llapack', '-Wl,-rpath,/opt/homebrew/lib'],
+      install: true,
+      install_dir: py3.get_install_dir() / 'irssg' / 'bin'
+    )
+  elif host_machine.system() == 'windows'
+    # Windows: use MSVC linking
+    irssg_exe = executable('irssg',
+      'fortran/src/main.f90',
+      link_with: [lib_ssg, src_irssg_lib],
+      include_directories: [
+        include_directories('fortran/src'),
+        include_directories('fortran/lib'),
+      ],
+      link_args: ['/LIBPATH:C:/Program Files (x86)/Intel/oneAPI/mkl/latest/lib/intel64', 'mkl_intel_lp64_dll.lib', 'mkl_sequential_dll.lib', 'mkl_core_dll.lib'],
+      install: true,
+      install_dir: py3.get_install_dir() / 'irssg' / 'bin'
+    )
+  else
+    # Linux: use system paths
+    irssg_exe = executable('irssg',
+      'fortran/src/main.f90',
+      link_with: [lib_ssg, src_irssg_lib],
+      include_directories: [
+        include_directories('fortran/src'),
+        include_directories('fortran/lib'),
+      ],
+      link_args: ['-L/usr/lib64', '-llapack', '-Wl,-rpath,/usr/lib64'],
+      install: true,
+      install_dir: py3.get_install_dir() / 'irssg' / 'bin'
+    )
+  endif
 else
   # Normal build environment, use dependency system
   irssg_exe = executable('irssg',

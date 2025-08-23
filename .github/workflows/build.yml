@@ -40,9 +40,17 @@ jobs:
     strategy:
       matrix:
         include:
-          # 只构建Linux x86_64
+          # Linux x86_64
           - os: ubuntu-latest
             cibw_archs: x86_64
+            
+          # macOS ARM64 (Apple Silicon)
+          - os: macos-latest  
+            cibw_archs: arm64
+            
+          # Windows AMD64
+          - os: windows-latest
+            cibw_archs: AMD64
     
     steps:
       - name: Checkout code
@@ -53,6 +61,29 @@ jobs:
         with:
           python-version: '3.9'
       
+      # macOS: 安装 Homebrew 依赖
+      - name: Install dependencies (macOS)
+        if: runner.os == 'macOS'
+        run: |
+          brew update
+          brew install gcc lapack
+          # 确保gfortran在PATH中
+          echo "$(brew --prefix)/bin" >> $GITHUB_PATH
+          # 设置编译器环境变量 - 使用clang而不是gcc
+          echo "FC=$(brew --prefix)/bin/gfortran" >> $GITHUB_ENV
+          echo "CC=clang" >> $GITHUB_ENV
+          echo "CXX=clang++" >> $GITHUB_ENV
+          # 验证编译器安装
+          which gfortran
+          echo "gfortran --version"
+          gfortran --version
+          echo "✅ Using clang/clang++ with gfortran for macOS builds"
+      
+      # Windows: 设置 Visual Studio
+      - name: Set up MSVC (Windows)
+        if: runner.os == 'Windows'
+        uses: ilammy/msvc-dev-cmd@v1
+      
 
       
       - name: Build wheels
@@ -61,10 +92,12 @@ jobs:
           output-dir: wheelhouse
         env:
           # Python版本配置
-          CIBW_BUILD: ${{ needs.setup.outputs.python-versions-cibw }}
+          CIBW_BUILD: "cp39-* cp310-* cp311-*"
           
           # 平台特定的架构配置
           CIBW_ARCHS_LINUX: ${{ matrix.cibw_archs }}
+          CIBW_ARCHS_MACOS: ${{ matrix.cibw_archs }}  
+          CIBW_ARCHS_WINDOWS: ${{ matrix.cibw_archs }}
           
           # 构建详细度配置
           CIBW_BUILD_VERBOSITY: "3"
@@ -94,8 +127,6 @@ jobs:
             
             # 验证数学库安装
             echo "🔍 Installed math libraries:"
-            ls -la /usr/lib64/libopenblas* || echo "OpenBLAS not found"
-            ls -la /usr/lib64/libblas* || echo "BLAS not found"
             ls -la /usr/lib64/liblapack* || echo "LAPACK not found"
             ls -la /usr/lib64/libgfortran* || echo "gfortran runtime not found"
             
@@ -108,31 +139,8 @@ jobs:
               echo "❌ LAPACK library not found"
             fi
             
-            # 检查OpenBLAS是否包含LAPACK
-            if [ -f /usr/lib64/libopenblas.so ]; then
-              echo "🔍 Checking OpenBLAS for LAPACK functions..."
-              nm -D /usr/lib64/libopenblas.so | grep -i zheev || echo "⚠️  zheev function not found in OpenBLAS"
-            fi
-            
             # 确保pkg-config能找到库
             echo "🔧 Setting up pkg-config..."
-            if [ -f /usr/lib64/pkgconfig/openblas.pc ]; then
-              echo "✅ OpenBLAS pkg-config file found"
-            else
-              echo "⚠️  OpenBLAS pkg-config file not found, creating one..."
-              mkdir -p /usr/lib64/pkgconfig
-              cat > /usr/lib64/pkgconfig/openblas.pc << EOF
-            prefix=/usr
-            libdir=/usr/lib64
-            includedir=/usr/include
-            
-            Name: OpenBLAS
-            Description: OpenBLAS is an optimized BLAS library
-            Version: 0.3.0
-            Libs: -L\${libdir} -lopenblas
-            Cflags: -I\${includedir}
-            EOF
-            fi
             
             if [ -f /usr/lib64/pkgconfig/lapack.pc ]; then
               echo "✅ LAPACK pkg-config file found"
@@ -152,31 +160,59 @@ jobs:
             EOF
             fi
             
-            if [ -f /usr/lib64/pkgconfig/blas.pc ]; then
-              echo "✅ BLAS pkg-config file found"
-            else
-              echo "⚠️  BLAS pkg-config file not found, creating one..."
-              cat > /usr/lib64/pkgconfig/blas.pc << EOF
-            prefix=/usr
-            libdir=/usr/lib64
-            includedir=/usr/include
-            
-            Name: BLAS
-            Description: Basic Linear Algebra Subprograms
-            Version: 3.9.0
-            Libs: -L\${libdir} -lblas
-            Cflags: -I\${includedir}
-            EOF
-            fi
+
             
             echo "✅ Dependencies installed successfully"
+          
+          # macOS: 安装依赖并设置编译器
+          CIBW_BEFORE_BUILD_MACOS: |
+            echo "📦 Installing dependencies for macOS builds..."
+            brew update
+            brew install gcc lapack
+            
+            # 设置编译器环境变量
+            export FC=$(brew --prefix)/bin/gfortran
+            export CC=clang
+            export CXX=clang++
+            export FFLAGS="-fallow-invalid-boz -fbackslash -ffree-line-length-none -fallow-argument-mismatch"
+            
+            # 设置ARM64编译标志（如果适用）
+            if [ "$(uname -m)" = "arm64" ]; then
+              echo "🎯 Building for ARM64 (Apple Silicon)"
+              export CFLAGS="-arch arm64"
+              export CXXFLAGS="-arch arm64"
+              export LDFLAGS="-arch arm64 -L$(brew --prefix)/lib -Wl,-rpath,$(brew --prefix)/lib"
+              export ARCHFLAGS="-arch arm64"
+            else
+              echo "🎯 Building for x86_64 (Intel)"
+              export CFLAGS="-arch x86_64"
+              export CXXFLAGS="-arch x86_64"
+              export LDFLAGS="-arch x86_64 -L$(brew --prefix)/lib -WWl,-rpath,$(brew --prefix)/lib"
+              export ARCHFLAGS="-arch x86_64"
+            fi
+            
+            echo "✅ macOS build environment configured"
+          
+          # Windows: 设置MSVC环境
+          CIBW_BEFORE_BUILD_WINDOWS: |
+            echo "📦 Setting up MSVC environment for Windows builds..."
+            
+            # 设置编译器环境变量
+            export CC=cl
+            export CXX=cl
+            export FC=cl
+            
+            # 设置Fortran编译标志
+            export FFLAGS="/fpp /std:legacy"
+            
+            echo "✅ Windows MSVC environment configured"
           
 
       
       - name: Upload wheels
         uses: actions/upload-artifact@v4
         with:
-          name: wheels-ubuntu-latest-x86_64
+          name: wheels-${{ matrix.os }}-${{ matrix.cibw_archs }}
           path: ./wheelhouse/*.whl
 
   test_linux:
