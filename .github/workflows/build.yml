@@ -150,7 +150,7 @@ jobs:
             
             echo "✅ Dependencies installed successfully"
           
-          # macOS: 安装依赖并设置编译器 (学习wanniertools的方式)
+          # macOS: 安装依赖并设置编译器 (简化版本，只用LAPACK)
           CIBW_BEFORE_BUILD_MACOS: |
             set -e  # 遇到错误立即退出，便于调试
             echo "📦 Installing dependencies for macOS builds..."
@@ -163,20 +163,36 @@ jobs:
             echo "Step 1: Updating Homebrew..."
             # brew update || { echo "❌ Homebrew update failed"; exit 1; }
             
-            # 步骤2: 安装依赖 (完全采用wanniertools的方式)
-            echo "Step 2: Installing dependencies (wanniertools style)..."
-            echo "Installing: gcc openblas arpack open-mpi hwloc"
-            brew install gcc openblas arpack open-mpi hwloc || { echo "❌ Dependencies installation failed"; exit 1; }
+            # 步骤2: 安装依赖 (简化版本，只用必要的包)
+            echo "Step 2: Installing dependencies (simplified)..."
+            echo "Installing: gcc lapack (only essential packages)"
+            brew install gcc lapack || { echo "❌ Dependencies installation failed"; exit 1; }
             
             # 确保gfortran在PATH中
             echo "$(brew --prefix)/bin" >> $GITHUB_PATH
             export PATH="$(brew --prefix)/bin:$PATH"
             
+            # 创建gfortran软链接（解决版本化gfortran问题）
+            echo "🔧 Creating gfortran symlink..."
+            if [ ! -L "$(brew --prefix)/bin/gfortran" ]; then
+              # 找到最新的gfortran版本
+              latest_gfortran=$(ls -1 $(brew --prefix)/bin/gfortran-* | sort -V | tail -1)
+              if [ -n "$latest_gfortran" ]; then
+                echo "Creating symlink: gfortran -> $(basename $latest_gfortran)"
+                ln -sf $(basename $latest_gfortran) $(brew --prefix)/bin/gfortran
+              else
+                echo "❌ No gfortran versions found"
+                exit 1
+              fi
+            else
+              echo "✅ gfortran symlink already exists"
+            fi
+            
             echo "🔍 PATH after update: $PATH"
             echo "🔍 GITHUB_PATH content:"
             cat $GITHUB_PATH || echo "GITHUB_PATH not accessible"
             
-            echo "✅ Dependencies installed successfully (wanniertools style)"
+            echo "✅ Dependencies installed successfully (simplified)"
             
             # 步骤3: 设置编译器环境变量
             echo "Step 3: Setting compiler environment variables..."
@@ -195,12 +211,12 @@ jobs:
             export FFLAGS="-fallow-invalid-boz -fbackslash -ffree-line-length-none -fallow-argument-mismatch"
             echo "✅ Compiler variables set: FC=$FC, CC=$CC, CXX=$CXX"
             
-            # 步骤4: 设置OpenBLAS路径
-            echo "Step 4: Setting OpenBLAS paths..."
-            export LDFLAGS="-L$(brew --prefix)/opt/openblas/lib"
-            export CPPFLAGS="-I$(brew --prefix)/opt/openblas/include"
-            export PKG_CONFIG_PATH="$(brew --prefix)/opt/openblas/lib/pkgconfig:$PKG_CONFIG_PATH"
-            echo "✅ OpenBLAS paths set: LDFLAGS=$LDFLAGS, CPPFLAGS=$CPPFLAGS"
+            # 步骤4: 设置LAPACK路径
+            echo "Step 4: Setting LAPACK paths..."
+            export LDFLAGS="-L$(brew --prefix)/opt/lapack/lib"
+            export CPPFLAGS="-I$(brew --prefix)/opt/lapack/include"
+            export PKG_CONFIG_PATH="$(brew --prefix)/opt/lapack/lib/pkgconfig:$PKG_CONFIG_PATH"
+            echo "✅ LAPACK paths set: LDFLAGS=$LDFLAGS, CPPFLAGS=$CPPFLAGS"
             
             # 步骤5: 设置架构标志
             echo "Step 5: Setting architecture flags..."
@@ -208,27 +224,27 @@ jobs:
               echo "🎯 Building for ARM64 (Apple Silicon)"
               export CFLAGS="-arch arm64"
               export CXXFLAGS="-arch arm64"
-              export LDFLAGS="$LDFLAGS -arch arm64 -Wl,-rpath,$(brew --prefix)/opt/openblas/lib"
+              export LDFLAGS="$LDFLAGS -arch arm64 -Wl,-rpath,$(brew --prefix)/opt/lapack/lib"
               export ARCHFLAGS="-arch arm64"
             else
               echo "🎯 Building for x86_64 (Intel)"
               export CFLAGS="-arch x86_64"
               export CXXFLAGS="-arch x86_64"
-              export LDFLAGS="$LDFLAGS -arch x86_64 -Wl,-rpath,$(brew --prefix)/opt/openblas/lib"
+              export LDFLAGS="$LDFLAGS -arch x86_64 -Wl,-rpath,$(brew --prefix)/opt/lapack/lib"
               export ARCHFLAGS="-arch x86_64"
             fi
             echo "✅ Architecture flags set: CFLAGS=$CFLAGS, CXXFLAGS=$CXXFLAGS"
             
             # 步骤6: 验证安装
             echo "Step 6: Verifying installation..."
-            echo "🔍 Checking OpenBLAS library files..."
-            ls -la $(brew --prefix)/opt/openblas/lib/ || { echo "❌ OpenBLAS lib directory not found"; exit 1; }
-            ls -la $(brew --prefix)/opt/openblas/include/ || { echo "❌ OpenBLAS include directory not found"; exit 1; }
+            echo "🔍 Checking LAPACK library files..."
+            ls -la $(brew --prefix)/opt/lapack/lib/ || { echo "❌ LAPACK lib directory not found"; exit 1; }
+            ls -la $(brew --prefix)/opt/lapack/include/ || { echo "❌ LAPACK include directory not found"; exit 1; }
             
-            echo "🔍 Checking pkg-config OpenBLAS detection..."
-            pkg-config --exists openblas || { echo "❌ pkg-config cannot find OpenBLAS"; exit 1; }
-            pkg-config --modversion openblas || echo "⚠️ Could not get OpenBLAS version"
-            pkg-config --variable=libdir openblas || echo "⚠️ Could not get OpenBLAS libdir"
+            echo "🔍 Checking pkg-config LAPACK detection..."
+            pkg-config --exists lapack || { echo "❌ pkg-config cannot find LAPACK"; exit 1; }
+            pkg-config --modversion lapack || echo "⚠️ Could not get LAPACK version"
+            pkg-config --variable=libdir lapack || echo "⚠️ Could not get LAPACK libdir"
             
             # 步骤7: 设置cibuildwheel环境变量
             echo "Step 7: Setting cibuildwheel environment variables..."
