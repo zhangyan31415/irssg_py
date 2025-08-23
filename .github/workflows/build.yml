@@ -50,6 +50,9 @@ jobs:
     - name: Test irssg command execution
       run: |
         # Test basic command functionality
+        cd examples/test_irssg
+        ls -la  # Show what files are available
+        pwd
         irssg --version
         irssg --help
         
@@ -57,7 +60,6 @@ jobs:
         irssg --validate
         
         # Test full execution in test directory with input file
-        cd examples/test_irssg
-        ls -la  # Show what files are available
+
         timeout 25s irssg irssg.in || echo "irssg command completed (may have timed out or finished)"
 
