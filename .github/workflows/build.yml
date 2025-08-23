@@ -41,7 +41,7 @@ jobs:
         # Fix wheel to include system libraries
         for wheel in dist/*.whl; do
           echo "Fixing wheel: $wheel"
-          auditwheel repair "$wheel" --plat linux_x86_64 -w dist/
+          auditwheel repair "$wheel" --plat manylinux2014_x86_64 -w dist/
         done
 
     - name: Upload build artifacts
