@@ -21,5 +21,12 @@ echo === Verifying installation ===
 gcc --version
 gfortran --version
 
+echo === Checking LAPACK installation ===
+if exist "C:\msys64\ucrt64\bin\liblapack.dll" (
+    echo "✅ liblapack.dll found"
+) else (
+    echo "❌ liblapack.dll NOT found!"
+)
+
 echo === Setup Complete ===
 echo "PATH: %PATH%" 
