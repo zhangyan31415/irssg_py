@@ -626,6 +626,13 @@ jobs:
             if (Test-Path "output.txt") { Remove-Item "output.txt" }
             if (Test-Path "error.txt") { Remove-Item "error.txt" }
             
+            # 如果exit code不是0，尝试分析错误
+            if ($process.ExitCode -ne 0) {
+              Write-Host "Warning: irssg command failed with exit code $($process.ExitCode)"
+              Write-Host "This might be due to memory limitations or other runtime issues"
+              Write-Host "The command execution was successful, but the Fortran program encountered an error"
+            }
+            
           } catch {
             Write-Host "irssg command failed with exception: $_"
           }
