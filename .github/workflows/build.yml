@@ -704,7 +704,30 @@ jobs:
             if (Test-Path $irssgPackagePath) {
               Write-Host "  irssg package path: $irssgPackagePath"
               Write-Host "  Package contents:"
-              Get-ChildItem $irssgPackagePath -Recurse | Where-Object { $_.Name -like "*.dll" -or $_.Name -like "*.exe" } | Format-Table Name, Length, FullName
+              Get-ChildItem $irssgPackagePath -Recurse | Format-Table Name, Length, FullName
+              
+              # 检查bin目录
+              $binPath = Join-Path $irssgPackagePath "bin"
+              if (Test-Path $binPath) {
+                Write-Host "  Bin directory contents:"
+                Get-ChildItem $binPath | Format-Table Name, Length, FullName
+              }
+              
+              # 检查data目录
+              $dataPath = Join-Path $irssgPackagePath "data"
+              if (Test-Path $dataPath) {
+                Write-Host "  Data directory contents:"
+                Get-ChildItem $dataPath -Recurse | Select-Object Name, Length, FullName | Format-Table
+              }
+            }
+            
+            # 检查wheel包是否正确安装
+            Write-Host "Checking wheel installation..."
+            try {
+              $wheelInfo = python -c "import irssg; print('Package location:', irssg.__file__)"
+              Write-Host "  $wheelInfo"
+            } catch {
+              Write-Host "  ❌ Could not import irssg: $_"
             }
             
             # 尝试加载关键库文件
