@@ -170,7 +170,8 @@ if is_cibuildwheel == '1'
       install_dir: py3.get_install_dir() / 'irssg' / 'bin'
     )
   elif host_machine.system() == 'windows'
-    # Windows: use MSVC linking
+    # Windows: use MSYS2 UCRT64 toolchain (like wanniertools)
+    message('Windows detected: using MSYS2 UCRT64 toolchain')
     irssg_exe = executable('irssg',
       'fortran/src/main.f90',
       link_with: [lib_ssg, src_irssg_lib],
@@ -178,7 +179,7 @@ if is_cibuildwheel == '1'
         include_directories('fortran/src'),
         include_directories('fortran/lib'),
       ],
-      link_args: ['/LIBPATH:C:/Program Files (x86)/Intel/oneAPI/mkl/latest/lib/intel64', 'mkl_intel_lp64_dll.lib', 'mkl_sequential_dll.lib', 'mkl_core_dll.lib'],
+      link_args: ['-LC:/msys64/ucrt64/lib', '-llapack', '-lopenblas', '-lgfortran'],
       install: true,
       install_dir: py3.get_install_dir() / 'irssg' / 'bin'
     )

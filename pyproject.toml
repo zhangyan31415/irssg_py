@@ -38,7 +38,7 @@ before-build = [
 # macOS特定配置
 [tool.cibuildwheel.macos]
 archs = ["x86_64", "arm64"]
-environment = { FFLAGS = "-fallow-invalid-boz -fbackslash -ffree-line-length-none -fallow-argument-mismatch" }
+environment = { FFLAGS = "-fallow-invalid-boz -fbackslash -ffree-line-length-none -fallow-argument-mismatch", MACOSX_DEPLOYMENT_TARGET = "15.0" }
 before-build = [
     "echo 'Building macOS wheels'",
     "brew update",
@@ -52,10 +52,17 @@ before-build = [
 # Windows特定配置
 [tool.cibuildwheel.windows]
 archs = ["AMD64"]
-environment = { FFLAGS = "-fallow-invalid-boz -fbackslash -ffree-line-length-none -fallow-argument-mismatch" }
+environment = { FC = "C:\\msys64\\ucrt64\\bin\\gfortran.exe", CC = "C:\\msys64\\ucrt64\\bin\\gcc.exe", CXX = "C:\\msys64\\ucrt64\\bin\\g++.exe", FFLAGS = "-fallow-invalid-boz -fbackslash -ffree-line-length-none -fallow-argument-mismatch -O2", CFLAGS = "-O2", CXXFLAGS = "-O2", LDFLAGS = "-LC:\\msys64\\ucrt64\\lib", PATH = "C:\\msys64\\ucrt64\\bin;${PATH}" }
 before-build = [
-    "echo 'Building Windows wheels'",
-    "echo 'Setting up MSVC environment...'"
+    "echo 'Setting up Windows build environment...'",
+    "C:\\msys64\\usr\\bin\\pacman.exe -Syu --noconfirm",
+    "C:\\msys64\\usr\\bin\\pacman.exe -S --noconfirm mingw-w64-ucrt-x86_64-gcc mingw-w64-ucrt-x86_64-gcc-fortran mingw-w64-ucrt-x86_64-lapack",
+    "echo 'Windows build environment setup complete'"
+]
+
+repair-wheel-command = [
+    "echo 🧹 Repairing Windows wheel...",
+    "delvewheel repair --add-path C:\\msys64\\ucrt64\\bin -w {dest_dir} {wheel}"
 ]
 
 [project]
