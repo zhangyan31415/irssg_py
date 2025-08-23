@@ -33,6 +33,11 @@ echo "PATH=C:\msys64\ucrt64\bin;%PATH%" >> %GITHUB_ENV%
 echo "CPATH=C:\msys64\ucrt64\include" >> %GITHUB_ENV%
 echo "LIBRARY_PATH=C:\msys64\ucrt64\lib" >> %GITHUB_ENV%
 
+rem 同时设置到当前会话
+set "PATH=C:\msys64\ucrt64\bin;%PATH%"
+set "CPATH=C:\msys64\ucrt64\include"
+set "LIBRARY_PATH=C:\msys64\ucrt64\lib"
+
 echo === Verifying installation ===
 echo "Checking GCC..."
 C:\msys64\ucrt64\bin\gcc.exe --version

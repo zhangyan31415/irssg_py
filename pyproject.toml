@@ -64,7 +64,7 @@ repair-wheel-command = [
     "echo 🔍 Checking wheel before repair...",
     "dir {wheel}",
     "echo 📦 Repairing with delvewheel...",
-    "delvewheel repair --add-path C:\\\\msys64\\\\ucrt64\\\\bin -w {dest_dir} {wheel}",
+    "delvewheel repair --add-path C:\\\\msys64\\\\ucrt64\\\\bin --add-dll liblapack.dll --add-dll libgfortran-5.dll --add-dll libquadmath-0.dll --add-dll libgcc_s_seh-1.dll --add-dll libwinpthread-1.dll -w {dest_dir} {wheel}",
     "echo 🔍 Checking repaired wheel...",
     "dir {dest_dir}",
     "echo ✅ Windows wheel repair completed"
