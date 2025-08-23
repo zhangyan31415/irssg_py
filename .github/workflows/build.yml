@@ -56,7 +56,8 @@ jobs:
         # Test validation command
         irssg --validate
         
-        # Test full execution in test directory
+        # Test full execution in test directory with input file
         cd examples/test_irssg
-        timeout 25s irssg || echo "irssg command completed (may have timed out or finished)"
+        ls -la  # Show what files are available
+        timeout 25s irssg irssg.in || echo "irssg command completed (may have timed out or finished)"
 
