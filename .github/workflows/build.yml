@@ -489,15 +489,10 @@ jobs:
             echo "Testing validation..."
             irssg --validate
             
-            # 测试完整执行（macOS使用gtimeout，如果没有则使用perl实现）
+            # 测试完整执行（macOS使用perl实现timeout）
             echo "Testing full execution..."
-            if command -v gtimeout >/dev/null 2>&1; then
-              echo "Using gtimeout for timeout control..."
-              gtimeout 30s irssg irssg.in || echo "irssg command completed (may have timed out or finished)"
-            else
-              echo "gtimeout not found, using perl timeout implementation..."
-              perl -e 'alarm 30; exec @ARGV' irssg irssg.in || echo "irssg command completed (may have timed out or finished)"
-            fi
+            echo "Using perl timeout implementation for macOS..."
+            perl -e 'alarm 30; exec @ARGV' irssg irssg.in || echo "irssg command completed (may have timed out or finished)"
             
             echo "✅ All macOS ARM64 tests passed"
 
