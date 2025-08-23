@@ -52,7 +52,7 @@ before-build = [
 # Windows特定配置
 [tool.cibuildwheel.windows]
 archs = ["AMD64"]
-environment = { FC = "C:\\\\msys64\\\\ucrt64\\\\bin\\\\gfortran.exe", CC = "C:\\\\msys64\\\\ucrt64\\\\bin\\\\gcc.exe", CXX = "C:\\\\msys64\\\\ucrt64\\\\bin\\\\g++.exe", FFLAGS = "-fallow-invalid-boz -fbackslash -ffree-line-length-none -fallow-argument-mismatch -O2", CFLAGS = "-O2", CXXFLAGS = "-O2", LDFLAGS = "-LC:\\\\msys64\\\\ucrt64\\\\lib -Wl,--allow-multiple-definition", OPENBLAS_NUM_THREADS = "1", OMP_NUM_THREADS = "1", MKL_NUM_THREADS = "1", BLAS = "None", LAPACK = "None", PATH = "C:\\\\msys64\\\\ucrt64\\\\bin;${PATH}" }
+environment = { FC = "C:\\\\msys64\\\\ucrt64\\\\bin\\\\gfortran.exe", CC = "C:\\\\msys64\\\\ucrt64\\\\bin\\\\gcc.exe", CXX = "C:\\\\msys64\\\\ucrt64\\\\bin\\\\g++.exe", FFLAGS = "-fallow-invalid-boz -fbackslash -ffree-line-length-none -fallow-argument-mismatch -O2", CFLAGS = "-O2", CXXFLAGS = "-O2", LDFLAGS = "-LC:\\\\msys64\\\\ucrt64\\\\lib -Wl,--allow-multiple-definition", OPENBLAS_NUM_THREADS = "1", OMP_NUM_THREADS = "1", MKL_NUM_THREADS = "1", BLAS = "None", LAPACK = "None", PATH = "C:\\\\msys64\\\\ucrt64\\\\bin;${PATH}", LIBRARY_PATH = "C:\\\\msys64\\\\ucrt64\\\\lib", CPATH = "C:\\\\msys64\\\\ucrt64\\\\include" }
 before-build = [
     "echo 'Setting up Windows build environment...'",
     "windows_setup.bat",
@@ -60,8 +60,11 @@ before-build = [
 ]
 
 repair-wheel-command = [
-    "echo 🧹 Repairing Windows wheel with delvewheel...",
-    "delvewheel repair --add-path C:\\msys64\\ucrt64\\bin --add-dll libopenblas.dll --add-dll libgfortran-5.dll --add-dll libquadmath-0.dll --add-dll libgcc_s_seh-1.dll --add-dll libwinpthread-1.dll -w {dest_dir} {wheel}",
+    "echo 🧹 Repairing Windows wheel...",
+    "echo 🔍 Checking wheel before repair...",
+    "dir {wheel}",
+    "echo 📦 Repairing with delvewheel...",
+    "delvewheel repair --add-path C:\\\\msys64\\\\ucrt64\\\\bin --add-dll liblapack.dll --add-dll libgfortran-5.dll --add-dll libquadmath-0.dll --add-dll libgcc_s_seh-1.dll --add-dll libwinpthread-1.dll -w {dest_dir} {wheel}",
     "echo 🔍 Checking repaired wheel...",
     "dir {dest_dir}",
     "echo ✅ Windows wheel repair completed"
