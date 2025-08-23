@@ -611,13 +611,35 @@ jobs:
           # 检查irssg.exe的依赖
           Write-Host "Checking irssg.exe dependencies..."
           try {
-            $deps = Get-Item "irssg.exe" | Select-Object -ExpandProperty FullName
-            Write-Host "  irssg.exe path: $deps"
+            # 首先检查当前目录
+            if (Test-Path "irssg.exe") {
+              $deps = Get-Item "irssg.exe" | Select-Object -ExpandProperty FullName
+              Write-Host "  irssg.exe found in current directory: $deps"
+            } else {
+              # 检查Python包安装目录
+              $pythonPath = python -c "import sys; print(sys.prefix)"
+              $irssgExePath = Join-Path $pythonPath "Scripts\irssg.exe"
+              if (Test-Path $irssgExePath) {
+                Write-Host "  irssg.exe found in Python Scripts: $irssgExePath"
+                $deps = $irssgExePath
+              } else {
+                Write-Host "  irssg.exe not found in Scripts, checking site-packages..."
+                $sitePackages = python -c "import site; print(site.getsitepackages()[0])"
+                $irssgBinPath = Join-Path $sitePackages "irssg\bin\irssg.exe"
+                if (Test-Path $irssgBinPath) {
+                  Write-Host "  irssg.exe found in site-packages: $irssgBinPath"
+                  $deps = $irssgBinPath
+                } else {
+                  Write-Host "  ❌ irssg.exe not found anywhere!"
+                  exit 1
+                }
+              }
+            }
             
             # 使用dumpbin检查依赖（如果可用）
             if (Get-Command "dumpbin" -ErrorAction SilentlyContinue) {
               Write-Host "  Dependencies:"
-              dumpbin /dependents "irssg.exe" | Select-String "\.dll"
+              dumpbin /dependents $deps | Select-String "\.dll"
             }
           } catch {
             Write-Host "  Could not check dependencies: $_"
@@ -625,7 +647,8 @@ jobs:
           
           try {
             # 使用Start-Process避免STDERR重定向问题
-            $process = Start-Process -FilePath "irssg" -ArgumentList "irssg.in" -Wait -PassThru -RedirectStandardOutput "output.txt" -RedirectStandardError "error.txt"
+            # 使用找到的irssg.exe路径
+            $process = Start-Process -FilePath $deps -ArgumentList "irssg.in" -Wait -PassThru -RedirectStandardOutput "output.txt" -RedirectStandardError "error.txt"
             Write-Host "Process completed with exit code: $($process.ExitCode)"
             
             if (Test-Path "output.txt") {
