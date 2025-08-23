@@ -227,6 +227,3 @@ install_subdir('fortran/lib/kLittleGroups',
   install_dir: py3.get_install_dir() / 'irssg' / 'data', 
   strip_directory: false,
   install_tag: 'runtime')
-
-# Subdir for Python package
-subdir('python')
