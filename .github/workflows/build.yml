@@ -96,10 +96,28 @@ jobs:
       # macOS依赖现在在CIBW_BEFORE_BUILD_MACOS中处理
       # 删除旧的macOS依赖安装步骤，避免与OpenBLAS策略冲突
       
-      # Windows: 设置 Visual Studio
-      - name: Set up MSVC (Windows)
+      # Windows: 安装 MSYS2 和 UCRT64 工具链
+      - name: Install MSYS2 (Windows)
         if: runner.os == 'Windows'
-        uses: ilammy/msvc-dev-cmd@v1
+        run: |
+          echo "Installing MSYS2 on Windows..."
+          # 下载并安装 MSYS2
+          powershell -Command "Invoke-WebRequest 'https://github.com/msys2/msys2-installer/releases/download/2024-01-13/msys2-x86_64-20240113.exe' -OutFile msys2-installer.exe"
+          start /wait msys2-installer.exe --accept-messages --accept-licenses --confirm-command
+          del msys2-installer.exe
+          
+          # 设置 MSYS2 环境
+          echo "C:\msys64\usr\bin" >> $GITHUB_PATH
+          echo "C:\msys64\ucrt64\bin" >> $GITHUB_PATH
+          
+          # 安装必要的包
+          C:\msys64\usr\bin\pacman.exe -Syu --noconfirm
+          C:\msys64\usr\bin\pacman.exe -S --noconfirm mingw-w64-ucrt-x86_64-gcc mingw-w64-ucrt-x86_64-gcc-fortran mingw-w64-ucrt-x86_64-lapack
+          
+          # 验证安装
+          echo "Verifying MSYS2 installation..."
+          C:\msys64\ucrt64\bin\gfortran.exe --version
+          C:\msys64\ucrt64\bin\gcc.exe --version
       
 
       
