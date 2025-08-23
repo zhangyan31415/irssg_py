@@ -76,7 +76,7 @@ jobs:
             
             # 安装运行时依赖和数学库
             yum install -y rdma-core-devel || echo "Warning: Could not install RDMA dependencies"
-            yum install -y openblas-devel lapack-devel || echo "Warning: Could not install math libraries"
+            yum install -y lapack-devel || echo "Warning: Could not install LAPACK"
             
             # 修复 libgfortran 版本不匹配问题
             echo "🔧 Installing compatible gfortran runtime libraries..."

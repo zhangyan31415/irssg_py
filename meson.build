@@ -33,7 +33,7 @@ if not np_dep.found()
   np_dep = py3.dependency()
 endif
 
-# BLAS/LAPACK dependency - check if we're in cibuildwheel environment
+# LAPACK dependency - we only need zheev function
 is_cibuildwheel = run_command('python', '-c', 'import os; print(os.environ.get("CIBUILDWHEEL", "false"))', check: false).stdout().strip()
 
 if is_cibuildwheel == '1'
@@ -43,17 +43,16 @@ if is_cibuildwheel == '1'
   lapack_dep = dependency('', required: false)  # Force not found
 else
   # Normal build environment, use meson detection
-  blas_dep = dependency('openblas', required: false)
-  if not blas_dep.found()
-    blas_dep = dependency('blas', required: false)
-  endif
-  
+  # We only need LAPACK for zheev, not full BLAS
   lapack_dep = dependency('lapack', required: false)
   if not lapack_dep.found()
     message('LAPACK not found, trying to find it in OpenBLAS...')
     # Some OpenBLAS builds include LAPACK functions
     lapack_dep = dependency('openblas', required: false)
   endif
+  
+  # Minimal BLAS dependency (only if LAPACK requires it)
+  blas_dep = dependency('', required: false)  # Force not found
 endif
 
 # Compile lib_ssg library
@@ -117,7 +116,7 @@ endif
 
 # Build the main Fortran executable
 if is_cibuildwheel == '1'
-  # In cibuildwheel environment, use manual linking
+  # In cibuildwheel environment, use minimal linking (only LAPACK for zheev)
   irssg_exe = executable('irssg',
     'fortran/src/main.f90',
     link_with: [lib_ssg, src_irssg_lib],
@@ -125,7 +124,7 @@ if is_cibuildwheel == '1'
       include_directories('fortran/src'),
       include_directories('fortran/lib'),
     ],
-    link_args: ['-L/usr/lib64', '-lopenblas', '-llapack'],
+    link_args: ['-L/usr/lib64', '-llapack', '-Wl,-rpath,/usr/lib64'],
     install: true,
     install_dir: py3.get_install_dir() / 'irssg' / 'bin'
   )
