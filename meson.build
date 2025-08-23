@@ -97,7 +97,7 @@ if host_machine.system() == 'windows'
   if fortran_compiler.get_id().startswith('gcc')
     message('Windows: Using MinGW/GCC toolchain with enhanced DLL support')
     # Add runtime libraries with explicit paths for better DLL discovery
-    link_args += ['-LC:/msys64/mingw64/bin', '-LC:/msys64/mingw64/lib']
+    link_args += ['-LC:/msys64/ucrt64/bin', '-LC:/msys64/ucrt64/lib']
     link_args += ['-lgfortran', '-lquadmath', '-lm', '-lwinpthread']
     
     # Add runtime DLL search paths
@@ -245,7 +245,7 @@ if is_cibuildwheel == '1'
         include_directories('fortran/src'),
         include_directories('fortran/lib'),
       ],
-      link_args: ['-LC:/msys64/ucrt64/lib', '-llapack', '-lgfortran'],
+      link_args: ['-LC:/msys64/ucrt64/lib', '-lopenblas', '-lgfortran'],
       fortran_args: ['-DMPI', '-I' + 'C:/msys64/ucrt64/include'],
       install: true,
       install_dir: py3.get_install_dir() / 'irssg' / 'bin'
