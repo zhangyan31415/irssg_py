@@ -7,6 +7,10 @@ requires = [
 ]
 build-backend = "mesonpy"
 
+# Wheel修复配置
+[tool.auditwheel]
+repair-args = ["--plat", "linux_x86_64"]
+
 [project]
 name = "irssg"
 version = "0.1.0"
