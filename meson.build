@@ -122,7 +122,36 @@ endif
 if is_cibuildwheel == '1'
   # In cibuildwheel environment, use platform-specific linking
   if host_machine.system() == 'darwin'
-    # macOS: use Homebrew paths
+    # macOS: use Homebrew LAPACK paths with dynamic detection
+    # 尝试找到LAPACK库路径
+    lapack_lib_path = ''
+    if is_cibuildwheel == '1'
+      # 在cibuildwheel环境中，使用标准路径
+      lapack_lib_path = '/opt/homebrew/opt/lapack/lib'
+    else
+      # 在本地环境中，尝试自动检测
+      pkgconfig = find_program('pkg-config', required: false)
+      if pkgconfig.found()
+        lapack_lib_path = run_command(pkgconfig, '--variable=libdir', 'lapack', check: false).stdout().strip()
+      endif
+      if lapack_lib_path == ''
+        # 回退到常见路径
+        common_paths = ['/opt/homebrew/opt/lapack/lib', '/usr/local/opt/lapack/lib', '/opt/local/lib']
+        foreach path : common_paths
+          if run_command('test', '-d', path, check: false).returncode() == 0
+            lapack_lib_path = path
+            break
+          endif
+        endforeach
+      endif
+    endif
+    
+    if lapack_lib_path == ''
+      error('Could not find LAPACK library path on macOS')
+    endif
+    
+    message('Using LAPACK library path: ' + lapack_lib_path)
+    
     irssg_exe = executable('irssg',
       'fortran/src/main.f90',
       link_with: [lib_ssg, src_irssg_lib],
@@ -130,7 +159,7 @@ if is_cibuildwheel == '1'
         include_directories('fortran/src'),
         include_directories('fortran/lib'),
       ],
-      link_args: ['-L/opt/homebrew/lib', '-llapack', '-Wl,-rpath,/opt/homebrew/lib'],
+      link_args: ['-L' + lapack_lib_path, '-llapack', '-Wl,-rpath,' + lapack_lib_path],
       install: true,
       install_dir: py3.get_install_dir() / 'irssg' / 'bin'
     )

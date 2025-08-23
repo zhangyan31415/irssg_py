@@ -176,20 +176,39 @@ jobs:
             export CXX=clang++
             export FFLAGS="-fallow-invalid-boz -fbackslash -ffree-line-length-none -fallow-argument-mismatch"
             
+            # 设置LAPACK路径（macOS特殊处理）
+            export LDFLAGS="-L$(brew --prefix)/opt/lapack/lib"
+            export CPPFLAGS="-I$(brew --prefix)/opt/lapack/include"
+            export PKG_CONFIG_PATH="$(brew --prefix)/opt/lapack/lib/pkgconfig:$PKG_CONFIG_PATH"
+            
             # 设置ARM64编译标志（如果适用）
             if [ "$(uname -m)" = "arm64" ]; then
               echo "🎯 Building for ARM64 (Apple Silicon)"
               export CFLAGS="-arch arm64"
               export CXXFLAGS="-arch arm64"
-              export LDFLAGS="-arch arm64 -L$(brew --prefix)/lib -Wl,-rpath,$(brew --prefix)/lib"
+              export LDFLAGS="$LDFLAGS -arch arm64 -Wl,-rpath,$(brew --prefix)/opt/lapack/lib"
               export ARCHFLAGS="-arch arm64"
             else
               echo "🎯 Building for x86_64 (Intel)"
               export CFLAGS="-arch x86_64"
               export CXXFLAGS="-arch x86_64"
-              export LDFLAGS="-arch x86_64 -L$(brew --prefix)/lib -WWl,-rpath,$(brew --prefix)/lib"
+              export LDFLAGS="$LDFLAGS -arch x86_64 -Wl,-rpath,$(brew --prefix)/opt/lapack/lib"
               export ARCHFLAGS="-arch x86_64"
             fi
+            
+            # 验证LAPACK安装
+            echo "🔍 Verifying LAPACK installation..."
+            ls -la $(brew --prefix)/opt/lapack/lib/ || echo "LAPACK lib not found"
+            ls -la $(brew --prefix)/opt/lapack/include/ || echo "LAPACK include not found"
+            
+            # 验证pkg-config能找到LAPACK
+            echo "🔍 Verifying pkg-config LAPACK detection..."
+            pkg-config --exists lapack && echo "✅ pkg-config found LAPACK" || echo "⚠️ pkg-config LAPACK not found"
+            pkg-config --modversion lapack || echo "⚠️ Could not get LAPACK version"
+            pkg-config --variable=libdir lapack || echo "⚠️ Could not get LAPACK libdir"
+            
+            # 设置cibuildwheel环境变量
+            export CIBW_ENVIRONMENT_MACOS="LDFLAGS=$LDFLAGS CPPFLAGS=$CPPFLAGS PKG_CONFIG_PATH=$PKG_CONFIG_PATH"
             
             echo "✅ macOS build environment configured"
           
@@ -206,6 +225,23 @@ jobs:
             export FFLAGS="/fpp /std:legacy"
             
             echo "✅ Windows MSVC environment configured"
+          
+          # macOS: 使用delocate修复wheel
+          CIBW_REPAIR_WHEEL_COMMAND_MACOS: |
+            echo "🔧 Repairing macOS wheel..."
+            
+            # 检查delocate是否可用
+            if command -v delocate-wheel >/dev/null 2>&1; then
+              echo "✅ delocate found, using it to repair wheel"
+            else
+              echo "⚠️ delocate not found, trying to install it"
+              pip install delocate
+            fi
+            
+            # 用delocate修复wheel
+            delocate-wheel -w {dest_dir} {wheel}
+            
+            echo "✅ macOS wheel repaired with delocate"
           
 
       
