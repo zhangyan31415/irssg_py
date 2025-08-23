@@ -11,6 +11,14 @@ project('irssg', 'fortran', 'cpp',
 # Get Fortran compiler
 fortran_compiler = meson.get_compiler('fortran')
 
+# Set macOS deployment target for compatibility
+if host_machine.system() == 'darwin'
+  macos_target = run_command('python', '-c', 'import os; print(os.environ.get("MACOSX_DEPLOYMENT_TARGET", "14.0"))', check: false).stdout().strip()
+  message('Setting macOS deployment target: ' + macos_target)
+  add_project_arguments('-mmacosx-version-min=' + macos_target, language: 'fortran')
+  add_project_arguments('-mmacosx-version-min=' + macos_target, language: 'cpp')
+endif
+
 # Force legacy Fortran with no line length limits - this must work!
 legacy_flags = [
   '-std=legacy',

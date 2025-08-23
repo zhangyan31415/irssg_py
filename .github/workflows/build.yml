@@ -24,7 +24,7 @@ env:
   
   # 其他构建配置
   BUILD_VERBOSITY: "3"                    # 构建详细度 (0-3, 推荐3用于调试)
-  MACOS_DEPLOYMENT_TARGET: "14.0"         # macOS最低版本要求 (支持Apple Silicon)
+  MACOS_DEPLOYMENT_TARGET: "15.0"         # macOS最低版本要求 (支持Apple Silicon)
 
 on:
   push:
@@ -118,6 +118,9 @@ jobs:
           
           # 构建详细度配置
           CIBW_BUILD_VERBOSITY: ${{ env.BUILD_VERBOSITY }}
+          
+          # macOS部署目标配置 (使用顶部env中定义的版本)
+          CIBW_ENVIRONMENT_MACOS: ${{ matrix.cibw_archs == 'arm64' && format('MACOSX_DEPLOYMENT_TARGET={0}', env.MACOS_DEPLOYMENT_TARGET) || '' }}
           
           # Linux: 在manylinux镜像中安装依赖
           CIBW_BEFORE_BUILD_LINUX: |
